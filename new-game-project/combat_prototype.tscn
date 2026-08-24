@@ -16,27 +16,33 @@ layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="HPLabel" type="Label" parent="VBoxContainer" unique_id=941732274]
+[node name="StatusLabel" type="Label" parent="VBoxContainer" unique_id=941732274]
 layout_mode = 2
-
-[node name="AttackButton" type="Button" parent="VBoxContainer" unique_id=1030457236]
-layout_mode = 2
-text = "Bater 10"
-
-[node name="FleeButton" type="Button" parent="VBoxContainer" unique_id=370496501]
-layout_mode = 2
-text = "Fugir"
-
-[node name="CaptureButton" type="Button" parent="VBoxContainer" unique_id=1936172235]
-layout_mode = 2
-text = "Capturar"
-
-[node name="ItemButton" type="Button" parent="VBoxContainer" unique_id=1396343434]
-layout_mode = 2
-text = "Pocao: curar 6"
 
 [node name="LogLabel" type="Label" parent="VBoxContainer" unique_id=25093688]
 layout_mode = 2
 
 [node name="TurnLabel" type="Label" parent="VBoxContainer" unique_id=11963580]
+layout_mode = 2
+
+[node name="ActionButtons" type="HBoxContainer" parent="VBoxContainer" unique_id=932753599]
+layout_mode = 2
+
+[node name="AttackButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=1030457236]
+layout_mode = 2
+text = "Bater 10"
+
+[node name="ItemButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=1396343434]
+layout_mode = 2
+text = "Pocao: curar 6"
+
+[node name="CaptureButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=1936172235]
+layout_mode = 2
+text = "Capturar"
+
+[node name="FleeButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=370496501]
+layout_mode = 2
+text = "Fugir"
+
+[node name="TargetButtons" type="HBoxContainer" parent="VBoxContainer" unique_id=1398999343]
 layout_mode = 2
