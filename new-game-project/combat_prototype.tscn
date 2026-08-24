@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://cu7rjl5nf5x3b"]
+
+[ext_resource type="Script" uid="uid://dxtvb8ic4qnok" path="res://combat_prototype.gd" id="1_mqu1t"]
+
+[node name="CombatPrototype" type="Control" unique_id=1823080993]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_mqu1t")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=860667491]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="HPLabel" type="Label" parent="VBoxContainer" unique_id=941732274]
+layout_mode = 2
+
+[node name="AttackButton" type="Button" parent="VBoxContainer" unique_id=1030457236]
+layout_mode = 2
+text = "Bater 10"
+
+[node name="FleeButton" type="Button" parent="VBoxContainer" unique_id=370496501]
+layout_mode = 2
+text = "Fugir"
+
+[node name="CaptureButton" type="Button" parent="VBoxContainer" unique_id=1936172235]
+layout_mode = 2
+text = "Capturar"
+
+[node name="ItemButton" type="Button" parent="VBoxContainer" unique_id=1396343434]
+layout_mode = 2
+text = "Pocao: curar 6"
+
+[node name="LogLabel" type="Label" parent="VBoxContainer" unique_id=25093688]
+layout_mode = 2
+
+[node name="TurnLabel" type="Label" parent="VBoxContainer" unique_id=11963580]
+layout_mode = 2
