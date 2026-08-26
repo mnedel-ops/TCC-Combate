@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="New Game Project"
+config/name="tcc-combat"
 run/main_scene="uid://cu7rjl5nf5x3b"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"

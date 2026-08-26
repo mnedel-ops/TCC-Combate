@@ -7,99 +7,237 @@ const FLEE_CHANCE := 5.0 / 6.0
 const CAPTURE_CHANCE := 2.0 / 6.0
 const ITEM_HEAL_AMOUNT := 6
 
+# Uma criatura em combate (jogador ou inimiga).
 class Combatant:
-	var display_name: String
-	var hp: int
+	var creature_name: String
 	var max_hp: int
+	var hp: int
 	var is_player: bool
 	var initiative: int
-	var alive := true
+	var alive: bool = true
 
-	func _init(name_: String, hp_: int, is_player_: bool) -> void:
-		display_name = name_
-		hp = hp_
-		max_hp = hp_
-		is_player = is_player_
+	func _init(p_name: String, p_max_hp: int, p_is_player: bool) -> void:
+		creature_name = p_name
+		max_hp = p_max_hp
+		hp = p_max_hp
+		is_player = p_is_player
 
-@onready var status_label: Label = $VBoxContainer/StatusLabel
-@onready var turn_label: Label = $VBoxContainer/TurnLabel
+	func take_damage(amount: int) -> void:
+		hp = max(hp - amount, 0)
+		if hp == 0:
+			alive = false
+
+	func heal(amount: int) -> void:
+		hp = min(hp + amount, max_hp)
+
+# Uma acao escolhida pra essa rodada (ator + tipo + alvo).
+class PendingAction:
+	var actor: Combatant
+	var kind: String
+	var target: Combatant
+
+	func _init(p_actor: Combatant, p_kind: String, p_target: Combatant) -> void:
+		actor = p_actor
+		kind = p_kind
+		target = p_target
+
+
 @onready var log_label: Label = $VBoxContainer/LogLabel
-@onready var attack_button: Button = $VBoxContainer/ActionButtons/AttackButton
-@onready var item_button: Button = $VBoxContainer/ActionButtons/ItemButton
-@onready var capture_button: Button = $VBoxContainer/ActionButtons/CaptureButton
-@onready var flee_button: Button = $VBoxContainer/ActionButtons/FleeButton
-@onready var target_buttons: HBoxContainer = $VBoxContainer/TargetButtons
+@onready var hp_label: Label = $VBoxContainer/HPLabel
+@onready var turn_label: Label = $VBoxContainer/TurnLabel
+@onready var action_buttons: VBoxContainer = $VBoxContainer/ActionButtons
+@onready var flee_button: Button = $VBoxContainer/FleeButton
 
 var player_team: Array[Combatant] = []
 var enemy_team: Array[Combatant] = []
-var turn_queue: Array[Combatant] = []
+var turn_order: Array[Combatant] = []   # ordenado por iniciativa, decidido 1x no inicio
 
-var turn_index := 0
-var active: Combatant
-var pending_action: String = ""   # "attack" | "item" | "capture" | ""
 var combat_over := false
 var is_resolving := false
 
-func _ready() -> void:
-	attack_button.pressed.connect(func(): _start_targeting("attack"))
-	item_button.pressed.connect(func(): _start_targeting("item"))
-	capture_button.pressed.connect(func(): _start_targeting("capture"))
-	flee_button.pressed.connect(_on_flee_pressed)
+var _pending_actions: Array[PendingAction] = []
+var _current_player_index := 0   # qual criatura do jogador esta escolhendo agora
 
+
+func _ready() -> void:
 	player_team = [
-		Combatant.new("Jogador 1", MAX_HP, true),
-		Combatant.new("Jogador 2", MAX_HP, true),
+		Combatant.new("Criatura A", MAX_HP, true),
+		Combatant.new("Criatura B", MAX_HP, true),
 	]
 	enemy_team = [
-		Combatant.new("Inimigo 1", MAX_HP, false),
-		Combatant.new("Inimigo 2", MAX_HP, false),
+		Combatant.new("Inimigo A", MAX_HP, false),
+		Combatant.new("Inimigo B", MAX_HP, false),
 	]
 
-	_roll_initiative()
-	_update_status_label()
-	_log("Combate comecou! Ordem de turno: %s" % _queue_names())
+	flee_button.pressed.connect(_on_flee_pressed)
 
-	active = turn_queue[turn_index]
-	_start_turn()
+	_roll_initiative()
+	_update_hp_label()
+	_log("Combate comecou! 2 contra 2.")
+	_start_action_selection()
+
 
 func _roll_initiative() -> void:
+	# Cada criatura rola a propria iniciativa, independente das outras.
 	var all: Array[Combatant] = player_team + enemy_team
-	var used_values: Array[int] = []
-
 	for c in all:
-		var value := randi_range(1, 20)
-		while used_values.has(value):          # evita empate, cada criatura rola sozinha
-			value = randi_range(1, 20)
-		used_values.append(value)
-		c.initiative = value
+		c.initiative = randi_range(1, 20)
 
 	all.sort_custom(func(a, b): return a.initiative > b.initiative)
-	turn_queue = all
+	turn_order = all
 
-func _queue_names() -> String:
-	var names: Array[String] = []
-	for c in turn_queue:
-		names.append("%s(%d)" % [c.display_name, c.initiative])
-	return " > ".join(names)
+	var order_text := ""
+	for c in turn_order:
+		order_text += "%s (%d)  " % [c.creature_name, c.initiative]
+	_log("Ordem de iniciativa: " + order_text)
 
-func _start_turn() -> void:
-	if active.is_player:
-		turn_label.text = "Turno de %s - escolha uma acao." % active.display_name
-		_set_action_buttons_disabled(false)
-	else:
-		turn_label.text = "Turno de %s..." % active.display_name
-		_set_action_buttons_disabled(true)
-		is_resolving = true
-		await get_tree().create_timer(0.6).timeout
-		_enemy_take_turn(active)
+
+func _start_action_selection() -> void:
+	_pending_actions.clear()
+	_current_player_index = 0
+	_prompt_action_for_current_creature()
+
+
+# Pede acao pra cada criatura VIVA do jogador, uma de cada vez.
+func _prompt_action_for_current_creature() -> void:
+	if _current_player_index >= player_team.size():
+		_queue_enemy_actions()
+		_resolve_round()
+		return
+
+	var actor := player_team[_current_player_index]
+	if not actor.alive:
+		_current_player_index += 1
+		_prompt_action_for_current_creature()
+		return
+
+	turn_label.text = "Acao de %s:" % actor.creature_name
+	_clear_action_buttons()
+
+	_add_action_button("Atacar", func(): _begin_target_selection(actor, "attack"))
+	_add_action_button("Item", func(): _begin_target_selection(actor, "item"))
+	_add_action_button("Capturar", func(): _begin_target_selection(actor, "capture"))
+
+
+# Atacar/Capturar miram inimigos vivos. Item mira criaturas do proprio time.
+func _begin_target_selection(actor: Combatant, kind: String) -> void:
+	_clear_action_buttons()
+
+	var candidates: Array[Combatant] = []
+	match kind:
+		"attack", "capture":
+			candidates = enemy_team.filter(func(c): return c.alive)
+		"item":
+			candidates = player_team.filter(func(c): return c.alive)
+
+	turn_label.text = "%s: escolha o alvo" % actor.creature_name
+	for target in candidates:
+		_add_action_button(
+			"%s (%d/%d HP)" % [target.creature_name, target.hp, target.max_hp],
+			func(): _confirm_action(actor, kind, target)
+		)
+
+
+func _confirm_action(actor: Combatant, kind: String, target: Combatant) -> void:
+	_pending_actions.append(PendingAction.new(actor, kind, target))
+	_current_player_index += 1
+	_prompt_action_for_current_creature()
+
+
+# IA simples: cada inimigo vivo ataca um alvo aleatorio entre os jogadores vivos.
+func _queue_enemy_actions() -> void:
+	for enemy in enemy_team:
+		if not enemy.alive:
+			continue
+		var alive_players := player_team.filter(func(c): return c.alive)
+		if alive_players.is_empty():
+			continue
+		var target: Combatant = alive_players[randi() % alive_players.size()]
+		_pending_actions.append(PendingAction.new(enemy, "attack", target))
+
+
+# Executa as 4 acoes pendentes na ordem de iniciativa (nao na ordem que foram escolhidas).
+func _resolve_round() -> void:
+	is_resolving = true
+	_clear_action_buttons()
+	flee_button.disabled = true
+
+	for combatant in turn_order:
+		if combat_over:
+			break
+		if not combatant.alive:
+			continue
+
+		var action := _find_pending_action(combatant)
+		if action == null:
+			continue
+		if not action.target.alive:
+			_log("%s nao tem mais alvo valido, acao cancelada." % combatant.creature_name)
+			continue
+
+		turn_label.text = "Turno: %s" % combatant.creature_name
+		_execute_action(action)
+		_update_hp_label()
+		_check_combat_end()
+
+		if not combat_over:
+			await get_tree().create_timer(0.5).timeout
+
+	if not combat_over:
+		is_resolving = false
+		flee_button.disabled = false
+		_start_action_selection()
+
+
+func _find_pending_action(combatant: Combatant) -> PendingAction:
+	for action in _pending_actions:
+		if action.actor == combatant:
+			return action
+	return null
+
+
+func _execute_action(action: PendingAction) -> void:
+	match action.kind:
+		"attack":
+			if randf() < MISS_CHANCE:
+				_log("%s ataca %s... e erra!" % [action.actor.creature_name, action.target.creature_name])
+			else:
+				action.target.take_damage(ATTACK_DAMAGE)
+				_log("%s ataca %s! %d de dano." % [action.actor.creature_name, action.target.creature_name, ATTACK_DAMAGE])
+		"item":
+			action.target.heal(ITEM_HEAL_AMOUNT)
+			_log("%s usa item em %s! Recupera %d HP." % [action.actor.creature_name, action.target.creature_name, ITEM_HEAL_AMOUNT])
+		"capture":
+			if randf() < CAPTURE_CHANCE:
+				_log("%s captura %s! Retirado do combate." % [action.actor.creature_name, action.target.creature_name])
+				action.target.alive = false
+				action.target.hp = 0
+			else:
+				_log("Tentativa de capturar %s falhou!" % action.target.creature_name)
+
+
+func _check_combat_end() -> void:
+	var players_alive := player_team.any(func(c): return c.alive)
+	var enemies_alive := enemy_team.any(func(c): return c.alive)
+
+	if not players_alive:
+		_end_combat(false)
+	elif not enemies_alive:
+		_end_combat(true)
+
 
 func _on_flee_pressed() -> void:
 	if combat_over or is_resolving:
 		return
-	# Fuga e' da equipe inteira, ignora fila - substitui a acao do turno ativo.
+	_resolve_flee()
+
+
+# Fuga eh da equipe inteira (nao por criatura), ignora iniciativa, resolve antes de tudo.
+func _resolve_flee() -> void:
 	is_resolving = true
-	_set_action_buttons_disabled(true)
-	turn_label.text = "%s tenta fugir com o grupo..." % active.display_name
+	_clear_action_buttons()
+	flee_button.disabled = true
+	turn_label.text = "Equipe tenta fugir..."
 
 	if randf() < FLEE_CHANCE:
 		_log("Fugimos! Escapamos do combate.")
@@ -107,132 +245,64 @@ func _on_flee_pressed() -> void:
 		return
 
 	_log("Tentativa de fuga falhou!")
-	await get_tree().create_timer(0.4).timeout
-	_advance_turn()
 
-func _start_targeting(action: String) -> void:
-	if combat_over or is_resolving:
-		return
-	pending_action = action
-	_set_action_buttons_disabled(true)
+	for enemy in enemy_team:
+		if not enemy.alive or combat_over:
+			continue
+		var alive_players := player_team.filter(func(c): return c.alive)
+		if alive_players.is_empty():
+			continue
+		var target: Combatant = alive_players[randi() % alive_players.size()]
 
-	var targets: Array[Combatant]
-	if action == "item":
-		targets = player_team.filter(func(c): return c.alive)   # cura alcanca aliados vivos
-	else:
-		targets = enemy_team.filter(func(c): return c.alive)    # ataque/captura miram inimigos
+		turn_label.text = "Turno: %s" % enemy.creature_name
+		if randf() < MISS_CHANCE:
+			_log("%s ataca %s... e erra!" % [enemy.creature_name, target.creature_name])
+		else:
+			target.take_damage(ATTACK_DAMAGE)
+			_log("%s ataca %s! %d de dano." % [enemy.creature_name, target.creature_name, ATTACK_DAMAGE])
+		_update_hp_label()
+		_check_combat_end()
+		if combat_over:
+			break
+		await get_tree().create_timer(0.5).timeout
 
-	_show_target_buttons(targets)
+	if not combat_over:
+		is_resolving = false
+		flee_button.disabled = false
+		_start_action_selection()
 
-func _show_target_buttons(targets: Array[Combatant]) -> void:
-	for child in target_buttons.get_children():
-		child.queue_free()
-
-	for target in targets:
-		var button := Button.new()
-		button.text = "%s (%d/%d HP)" % [target.display_name, target.hp, target.max_hp]
-		button.pressed.connect(_on_target_chosen.bind(target))
-		target_buttons.add_child(button)
-
-	target_buttons.visible = true
-
-func _on_target_chosen(target: Combatant) -> void:
-	target_buttons.visible = false
-	for child in target_buttons.get_children():
-		child.queue_free()
-
-	is_resolving = true
-
-	match pending_action:
-		"attack":
-			_resolve_attack(active, target)
-		"item":
-			_resolve_item(target)
-		"capture":
-			_resolve_capture(target)
-
-	pending_action = ""
-	_after_action()
-
-func _resolve_attack(attacker: Combatant, target: Combatant) -> void:
-	if randf() < MISS_CHANCE:
-		_log("%s ataca %s... e erra!" % [attacker.display_name, target.display_name])
-		return
-
-	target.hp = max(target.hp - ATTACK_DAMAGE, 0)
-	_log("%s ataca %s! %d de dano." % [attacker.display_name, target.display_name, ATTACK_DAMAGE])
-
-	if target.hp <= 0:
-		target.alive = false
-		_log("%s foi derrotado!" % target.display_name)
-
-func _resolve_item(target: Combatant) -> void:
-	target.hp = min(target.hp + ITEM_HEAL_AMOUNT, target.max_hp)
-	_log("%s usa um item de cura em %s! Recupera %d HP." % [active.display_name, target.display_name, ITEM_HEAL_AMOUNT])
-
-func _resolve_capture(target: Combatant) -> void:
-	if randf() < CAPTURE_CHANCE:
-		target.alive = false
-		_log("Capturei %s!" % target.display_name)
-	else:
-		_log("Tentativa de capturar %s falhou!" % target.display_name)
-
-func _enemy_take_turn(enemy: Combatant) -> void:
-	var alive_players := player_team.filter(func(c): return c.alive)
-	if alive_players.is_empty():
-		return   # _check_combat_end ja deve ter fechado o combate antes disso
-	var target: Combatant = alive_players[randi() % alive_players.size()]
-	_resolve_attack(enemy, target)
-	_after_action()
-
-func _after_action() -> void:
-	_update_status_label()
-	if _check_combat_end():
-		return
-	_advance_turn()
-
-func _advance_turn() -> void:
-	turn_index = wrapi(turn_index + 1, 0, turn_queue.size())
-	while not turn_queue[turn_index].alive:
-		turn_index = wrapi(turn_index + 1, 0, turn_queue.size())
-
-	active = turn_queue[turn_index]
-	is_resolving = false
-	_start_turn()
-
-func _check_combat_end() -> bool:
-	var players_alive := player_team.any(func(c): return c.alive)
-	var enemies_alive := enemy_team.any(func(c): return c.alive)
-
-	if not enemies_alive:
-		_end_combat(true)
-		return true
-	if not players_alive:
-		_end_combat(false)
-		return true
-	return false
 
 func _end_combat(player_won: bool) -> void:
 	combat_over = true
-	is_resolving = true
-	_set_action_buttons_disabled(true)
+	_clear_action_buttons()
+	flee_button.disabled = true
 	turn_label.text = "Fim de combate."
 	_log("Vitoria!" if player_won else "Derrota!")
 
-func _set_action_buttons_disabled(value: bool) -> void:
-	attack_button.disabled = value
-	item_button.disabled = value
-	capture_button.disabled = value
-	flee_button.disabled = value
 
-func _update_status_label() -> void:
-	var parts: Array[String] = []
+func _add_action_button(text: String, callback: Callable) -> void:
+	var button := Button.new()
+	button.text = text
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.focus_mode = Control.FOCUS_NONE
+	button.pressed.connect(callback)
+	action_buttons.add_child(button)
+
+
+func _clear_action_buttons() -> void:
+	for child in action_buttons.get_children():
+		child.queue_free()
+
+
+func _update_hp_label() -> void:
+	var text := ""
 	for c in player_team:
-		parts.append("%s: %d/%d" % [c.display_name, c.hp, c.max_hp])
-	parts.append("||")
+		text += "%s: %d/%d HP   " % [c.creature_name, c.hp, c.max_hp]
+	text += "\n"
 	for c in enemy_team:
-		parts.append("%s: %d/%d" % [c.display_name, c.hp, c.max_hp])
-	status_label.text = " | ".join(parts)
+		text += "%s: %d/%d HP   " % [c.creature_name, c.hp, c.max_hp]
+	hp_label.text = text
+
 
 func _log(text: String) -> void:
 	log_label.text += "\n" + text

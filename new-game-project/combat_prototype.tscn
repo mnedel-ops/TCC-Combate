@@ -16,7 +16,7 @@ layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="StatusLabel" type="Label" parent="VBoxContainer" unique_id=941732274]
+[node name="HPLabel" type="Label" parent="VBoxContainer" unique_id=941732274]
 layout_mode = 2
 
 [node name="LogLabel" type="Label" parent="VBoxContainer" unique_id=25093688]
@@ -25,7 +25,7 @@ layout_mode = 2
 [node name="TurnLabel" type="Label" parent="VBoxContainer" unique_id=11963580]
 layout_mode = 2
 
-[node name="ActionButtons" type="HBoxContainer" parent="VBoxContainer" unique_id=932753599]
+[node name="ActionButtons" type="VBoxContainer" parent="VBoxContainer" unique_id=1225276966]
 layout_mode = 2
 
 [node name="AttackButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=1030457236]
@@ -40,7 +40,7 @@ text = "Pocao: curar 6"
 layout_mode = 2
 text = "Capturar"
 
-[node name="FleeButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=370496501]
+[node name="FleeButton" type="Button" parent="VBoxContainer" unique_id=370496501]
 layout_mode = 2
 text = "Fugir"
 
