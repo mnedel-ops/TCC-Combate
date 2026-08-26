@@ -1,0 +1,48 @@
+[gd_scene format=3 uid="uid://6pielqwfm22f"]
+
+[ext_resource type="Script" uid="uid://dqisu1adqgw7o" path="res://combat_ui.gd" id="1_jn67q"]
+
+[node name="CombatUI" type="Control" unique_id=233338954 node_paths=PackedStringArray("hplabel")]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_jn67q")
+hplabel = NodePath("VBoxContainer/HPLabel")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1039665964]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="HPLabel" type="Label" parent="VBoxContainer" unique_id=1511896712]
+layout_mode = 2
+text = "Vida atual!"
+
+[node name="TurnLabel" type="Label" parent="VBoxContainer" unique_id=904204627]
+layout_mode = 2
+
+[node name="ActionButtons" type="VBoxContainer" parent="VBoxContainer" unique_id=1074112014]
+layout_mode = 2
+
+[node name="AttackButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=1530346934]
+layout_mode = 2
+text = "Bater 10"
+
+[node name="ItemButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=433128728]
+layout_mode = 2
+text = "Pocao: curar 6"
+
+[node name="CaptureButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=2130274504]
+layout_mode = 2
+text = "Capturar"
+
+[node name="FleeButton" type="Button" parent="VBoxContainer" unique_id=843114098]
+layout_mode = 2
+text = "Fugir"
+
+[node name="LogLabel" type="Label" parent="VBoxContainer" unique_id=389889660]
+layout_mode = 2
+
+[node name="TargetButtons" type="HBoxContainer" parent="VBoxContainer" unique_id=122883077]
+layout_mode = 2

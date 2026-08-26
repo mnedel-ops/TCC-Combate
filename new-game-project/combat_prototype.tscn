@@ -13,38 +13,38 @@ grow_vertical = 2
 script = ExtResource("1_mqu1t")
 alchemon = ExtResource("2_a14sk")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=860667491]
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1301123171]
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="HPLabel" type="Label" parent="VBoxContainer" unique_id=941732274]
+[node name="HPLabel" type="Label" parent="VBoxContainer" unique_id=823173243]
 layout_mode = 2
 
-[node name="TurnLabel" type="Label" parent="VBoxContainer" unique_id=11963580]
+[node name="TurnLabel" type="Label" parent="VBoxContainer" unique_id=1150483530]
 layout_mode = 2
 
-[node name="ActionButtons" type="VBoxContainer" parent="VBoxContainer" unique_id=1225276966]
+[node name="ActionButtons" type="VBoxContainer" parent="VBoxContainer" unique_id=820068257]
 layout_mode = 2
 
-[node name="AttackButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=1030457236]
+[node name="AttackButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=1701553466]
 layout_mode = 2
 text = "Bater 10"
 
-[node name="ItemButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=1396343434]
+[node name="ItemButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=1671251075]
 layout_mode = 2
 text = "Pocao: curar 6"
 
-[node name="CaptureButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=1936172235]
+[node name="CaptureButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=2031006231]
 layout_mode = 2
 text = "Capturar"
 
-[node name="FleeButton" type="Button" parent="VBoxContainer" unique_id=370496501]
+[node name="FleeButton" type="Button" parent="VBoxContainer" unique_id=1489003061]
 layout_mode = 2
 text = "Fugir"
 
-[node name="LogLabel" type="Label" parent="VBoxContainer" unique_id=25093688]
+[node name="LogLabel" type="Label" parent="VBoxContainer" unique_id=632022143]
 layout_mode = 2
 
-[node name="TargetButtons" type="HBoxContainer" parent="VBoxContainer" unique_id=1398999343]
+[node name="TargetButtons" type="HBoxContainer" parent="VBoxContainer" unique_id=2077509692]
 layout_mode = 2
