@@ -7,6 +7,8 @@ const FLEE_CHANCE := 5.0 / 6.0
 const CAPTURE_CHANCE := 2.0 / 6.0
 const ITEM_HEAL_AMOUNT := 6
 
+@export var alchemon : alchemon_sheet
+
 # Uma criatura em combate (jogador ou inimiga).
 class Combatant:
 	var creature_name: String
@@ -41,7 +43,6 @@ class PendingAction:
 		kind = p_kind
 		target = p_target
 
-
 @onready var log_label: Label = $VBoxContainer/LogLabel
 @onready var hp_label: Label = $VBoxContainer/HPLabel
 @onready var turn_label: Label = $VBoxContainer/TurnLabel
@@ -61,7 +62,7 @@ var _current_player_index := 0   # qual criatura do jogador esta escolhendo agor
 
 func _ready() -> void:
 	player_team = [
-		Combatant.new("Criatura A", MAX_HP, true),
+		Combatant.new(alchemon.name, alchemon.max_hp, true),
 		Combatant.new("Criatura B", MAX_HP, true),
 	]
 	enemy_team = [
@@ -160,7 +161,7 @@ func _queue_enemy_actions() -> void:
 func _resolve_round() -> void:
 	is_resolving = true
 	_clear_action_buttons()
-	flee_button.disabled = true
+	_set_flee_disabled(true)
 
 	for combatant in turn_order:
 		if combat_over:
@@ -185,7 +186,7 @@ func _resolve_round() -> void:
 
 	if not combat_over:
 		is_resolving = false
-		flee_button.disabled = false
+		_set_flee_disabled(false)
 		_start_action_selection()
 
 
@@ -196,24 +197,57 @@ func _find_pending_action(combatant: Combatant) -> PendingAction:
 	return null
 
 
+# Passo 2 de refatoracao pra DOP: essas funcoes agora sao puras - recebem dado,
+# calculam, devolvem o resultado num Dictionary. Nao chamam _log, nao sabem
+# que existe UI. Quem decide como mostrar o resultado eh _log_result().
+func _resolve_attack(actor: Combatant, target: Combatant) -> Dictionary:
+	if randf() < MISS_CHANCE:
+		return {"kind": "attack_miss", "actor": actor, "target": target}
+
+	target.take_damage(ATTACK_DAMAGE)
+	return {"kind": "attack_hit", "actor": actor, "target": target, "damage": ATTACK_DAMAGE}
+
+
+func _resolve_item(actor: Combatant, target: Combatant) -> Dictionary:
+	target.heal(ITEM_HEAL_AMOUNT)
+	return {"kind": "item_used", "actor": actor, "target": target, "amount": ITEM_HEAL_AMOUNT}
+
+
+func _resolve_capture(actor: Combatant, target: Combatant) -> Dictionary:
+	if randf() < CAPTURE_CHANCE:
+		target.alive = false
+		target.hp = 0
+		return {"kind": "capture_success", "actor": actor, "target": target}
+
+	return {"kind": "capture_fail", "actor": actor, "target": target}
+
+
+# Unico lugar que traduz resultado -> texto. Trocar de idioma, formato,
+# ou até de UI (som, animacao) muda so aqui, nunca nas funcoes de calculo acima.
+func _log_result(result: Dictionary) -> void:
+	match result.kind:
+		"attack_miss":
+			_log("%s ataca %s... e erra!" % [result.actor.creature_name, result.target.creature_name])
+		"attack_hit":
+			_log("%s ataca %s! %d de dano." % [result.actor.creature_name, result.target.creature_name, result.damage])
+		"item_used":
+			_log("%s usa item em %s! Recupera %d HP." % [result.actor.creature_name, result.target.creature_name, result.amount])
+		"capture_success":
+			_log("%s captura %s! Retirado do combate." % [result.actor.creature_name, result.target.creature_name])
+		"capture_fail":
+			_log("Tentativa de capturar %s falhou!" % result.target.creature_name)
+
+
 func _execute_action(action: PendingAction) -> void:
+	var result: Dictionary
 	match action.kind:
 		"attack":
-			if randf() < MISS_CHANCE:
-				_log("%s ataca %s... e erra!" % [action.actor.creature_name, action.target.creature_name])
-			else:
-				action.target.take_damage(ATTACK_DAMAGE)
-				_log("%s ataca %s! %d de dano." % [action.actor.creature_name, action.target.creature_name, ATTACK_DAMAGE])
+			result = _resolve_attack(action.actor, action.target)
 		"item":
-			action.target.heal(ITEM_HEAL_AMOUNT)
-			_log("%s usa item em %s! Recupera %d HP." % [action.actor.creature_name, action.target.creature_name, ITEM_HEAL_AMOUNT])
+			result = _resolve_item(action.actor, action.target)
 		"capture":
-			if randf() < CAPTURE_CHANCE:
-				_log("%s captura %s! Retirado do combate." % [action.actor.creature_name, action.target.creature_name])
-				action.target.alive = false
-				action.target.hp = 0
-			else:
-				_log("Tentativa de capturar %s falhou!" % action.target.creature_name)
+			result = _resolve_capture(action.actor, action.target)
+	_log_result(result)
 
 
 func _check_combat_end() -> void:
@@ -236,7 +270,7 @@ func _on_flee_pressed() -> void:
 func _resolve_flee() -> void:
 	is_resolving = true
 	_clear_action_buttons()
-	flee_button.disabled = true
+	_set_flee_disabled(true)
 	turn_label.text = "Equipe tenta fugir..."
 
 	if randf() < FLEE_CHANCE:
@@ -255,11 +289,7 @@ func _resolve_flee() -> void:
 		var target: Combatant = alive_players[randi() % alive_players.size()]
 
 		turn_label.text = "Turno: %s" % enemy.creature_name
-		if randf() < MISS_CHANCE:
-			_log("%s ataca %s... e erra!" % [enemy.creature_name, target.creature_name])
-		else:
-			target.take_damage(ATTACK_DAMAGE)
-			_log("%s ataca %s! %d de dano." % [enemy.creature_name, target.creature_name, ATTACK_DAMAGE])
+		_log_result(_resolve_attack(enemy, target))
 		_update_hp_label()
 		_check_combat_end()
 		if combat_over:
@@ -268,16 +298,21 @@ func _resolve_flee() -> void:
 
 	if not combat_over:
 		is_resolving = false
-		flee_button.disabled = false
+		_set_flee_disabled(false)
 		_start_action_selection()
 
 
 func _end_combat(player_won: bool) -> void:
 	combat_over = true
 	_clear_action_buttons()
-	flee_button.disabled = true
+	_set_flee_disabled(true)
 	turn_label.text = "Fim de combate."
 	_log("Vitoria!" if player_won else "Derrota!")
+
+
+func _set_flee_disabled(value: bool) -> void:
+	if is_instance_valid(flee_button):
+		flee_button.disabled = value
 
 
 func _add_action_button(text: String, callback: Callable) -> void:
