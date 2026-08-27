@@ -1,14 +1,10 @@
 extends Control
 
-## Controller: so orquestra. Le input, chama CombatSystem, mostra resultado.
-## Nao tem regra de jogo aqui - toda regra mora em CombatSystem.
-## Dado mora em AlchemonSheet/PendingActionData (Resources em arquivo separado).
+## Controller: so orquestra. Le eventos da CombatUI, chama CombatSystem,
+## manda resultado de volta pra CombatUI mostrar. Sem regra de jogo aqui
+## (mora em CombatSystem) e sem manipulacao de Label/Button aqui (mora em CombatUI).
 
-@onready var log_label: Label = $VBoxContainer/LogLabel
-@onready var hp_label: Label = $VBoxContainer/HPLabel
-@onready var turn_label: Label = $VBoxContainer/TurnLabel
-@onready var action_buttons: VBoxContainer = $VBoxContainer/ActionButtons
-@onready var flee_button: Button = $VBoxContainer/FleeButton
+@onready var ui: CombatUI = $VBoxContainer
 
 var player_team: Array[AlchemonSheet] = []
 var enemy_team: Array[AlchemonSheet] = []
@@ -31,13 +27,13 @@ func _ready() -> void:
 		AlchemonSheet.new("Inimigo B", 30, false),
 	]
 
-	flee_button.pressed.connect(_on_flee_pressed)
+	ui.flee_pressed.connect(_on_flee_pressed)
 
 	turn_order = CombatSystem.roll_initiative(player_team + enemy_team)
 	_log_initiative_order()
 
-	_update_hp_label()
-	_log("Combate comecou! 2 contra 2.")
+	ui.update_hp(player_team, enemy_team)
+	ui.log_message("Combate comecou! 2 contra 2.")
 	_start_action_selection()
 
 
@@ -45,7 +41,7 @@ func _log_initiative_order() -> void:
 	var order_text := ""
 	for c in turn_order:
 		order_text += "%s (%d)  " % [c.creature_name, c.initiative]
-	_log("Ordem de iniciativa: " + order_text)
+	ui.log_message("Ordem de iniciativa: " + order_text)
 
 
 func _start_action_selection() -> void:
@@ -66,17 +62,15 @@ func _prompt_action_for_current_creature() -> void:
 		_prompt_action_for_current_creature()
 		return
 
-	turn_label.text = "Acao de %s:" % actor.creature_name
-	_clear_action_buttons()
-
-	_add_action_button("Atacar", func(): _begin_target_selection(actor, "attack"))
-	_add_action_button("Item", func(): _begin_target_selection(actor, "item"))
-	_add_action_button("Capturar", func(): _begin_target_selection(actor, "capture"))
+	ui.set_turn_text("Acao de %s:" % actor.creature_name)
+	ui.show_options([
+		{"text": "Atacar", "callback": func(): _begin_target_selection(actor, "attack")},
+		{"text": "Item", "callback": func(): _begin_target_selection(actor, "item")},
+		{"text": "Capturar", "callback": func(): _begin_target_selection(actor, "capture")},
+	])
 
 
 func _begin_target_selection(actor: AlchemonSheet, kind: String) -> void:
-	_clear_action_buttons()
-
 	var candidates: Array[AlchemonSheet] = []
 	match kind:
 		"attack", "capture":
@@ -84,12 +78,15 @@ func _begin_target_selection(actor: AlchemonSheet, kind: String) -> void:
 		"item":
 			candidates = player_team.filter(func(c): return c.alive)
 
-	turn_label.text = "%s: escolha o alvo" % actor.creature_name
+	ui.set_turn_text("%s: escolha o alvo" % actor.creature_name)
+
+	var options: Array = []
 	for target in candidates:
-		_add_action_button(
-			"%s (%d/%d HP)" % [target.creature_name, target.hp, target.max_hp],
-			func(): _confirm_action(actor, kind, target)
-		)
+		options.append({
+			"text": "%s (%d/%d HP)" % [target.creature_name, target.hp, target.max_hp],
+			"callback": func(): _confirm_action(actor, kind, target),
+		})
+	ui.show_options(options)
 
 
 func _confirm_action(actor: AlchemonSheet, kind: String, target: AlchemonSheet) -> void:
@@ -110,8 +107,8 @@ func _queue_enemy_actions() -> void:
 
 func _resolve_round() -> void:
 	is_resolving = true
-	_clear_action_buttons()
-	_set_flee_disabled(true)
+	ui.clear_options()
+	ui.set_flee_disabled(true)
 
 	for combatant in turn_order:
 		if combat_over:
@@ -123,12 +120,12 @@ func _resolve_round() -> void:
 		if action == null:
 			continue
 		if not action.target.alive:
-			_log("%s nao tem mais alvo valido, acao cancelada." % combatant.creature_name)
+			ui.log_message("%s nao tem mais alvo valido, acao cancelada." % combatant.creature_name)
 			continue
 
-		turn_label.text = "Turno: %s" % combatant.creature_name
+		ui.set_turn_text("Turno: %s" % combatant.creature_name)
 		_execute_action(action)
-		_update_hp_label()
+		ui.update_hp(player_team, enemy_team)
 		_check_combat_end()
 
 		if not combat_over:
@@ -136,7 +133,7 @@ func _resolve_round() -> void:
 
 	if not combat_over:
 		is_resolving = false
-		_set_flee_disabled(false)
+		ui.set_flee_disabled(false)
 		_start_action_selection()
 
 
@@ -174,16 +171,16 @@ func _on_flee_pressed() -> void:
 
 func _resolve_flee() -> void:
 	is_resolving = true
-	_clear_action_buttons()
-	_set_flee_disabled(true)
-	turn_label.text = "Equipe tenta fugir..."
+	ui.clear_options()
+	ui.set_flee_disabled(true)
+	ui.set_turn_text("Equipe tenta fugir...")
 
 	if CombatSystem.attempt_flee():
-		_log("Fugimos! Escapamos do combate.")
+		ui.log_message("Fugimos! Escapamos do combate.")
 		queue_free()
 		return
 
-	_log("Tentativa de fuga falhou!")
+	ui.log_message("Tentativa de fuga falhou!")
 
 	for enemy in enemy_team:
 		if not enemy.alive or combat_over:
@@ -192,9 +189,9 @@ func _resolve_flee() -> void:
 		if target == null:
 			continue
 
-		turn_label.text = "Turno: %s" % enemy.creature_name
+		ui.set_turn_text("Turno: %s" % enemy.creature_name)
 		_log_result(CombatSystem.resolve_attack(enemy, target))
-		_update_hp_label()
+		ui.update_hp(player_team, enemy_team)
 		_check_combat_end()
 		if combat_over:
 			break
@@ -202,62 +199,25 @@ func _resolve_flee() -> void:
 
 	if not combat_over:
 		is_resolving = false
-		_set_flee_disabled(false)
+		ui.set_flee_disabled(false)
 		_start_action_selection()
 
 
 func _end_combat(player_won: bool) -> void:
 	combat_over = true
-	_clear_action_buttons()
-	_set_flee_disabled(true)
-	turn_label.text = "Fim de combate."
-	_log("Vitoria!" if player_won else "Derrota!")
+	ui.show_combat_end(player_won)
 
 
-# Unico lugar que traduz resultado (Dictionary) -> texto. Trocar apresentacao
-# (som, animacao, outro idioma) muda so aqui, nunca no CombatSystem.
+# Unico lugar que traduz resultado (Dictionary) -> texto pra CombatUI.
 func _log_result(result: Dictionary) -> void:
 	match result.kind:
 		"attack_miss":
-			_log("%s ataca %s... e erra!" % [result.actor.creature_name, result.target.creature_name])
+			ui.log_message("%s ataca %s... e erra!" % [result.actor.creature_name, result.target.creature_name])
 		"attack_hit":
-			_log("%s ataca %s! %d de dano." % [result.actor.creature_name, result.target.creature_name, result.damage])
+			ui.log_message("%s ataca %s! %d de dano." % [result.actor.creature_name, result.target.creature_name, result.damage])
 		"item_used":
-			_log("%s usa item em %s! Recupera %d HP." % [result.actor.creature_name, result.target.creature_name, result.amount])
+			ui.log_message("%s usa item em %s! Recupera %d HP." % [result.actor.creature_name, result.target.creature_name, result.amount])
 		"capture_success":
-			_log("%s captura %s! Retirado do combate." % [result.actor.creature_name, result.target.creature_name])
+			ui.log_message("%s captura %s! Retirado do combate." % [result.actor.creature_name, result.target.creature_name])
 		"capture_fail":
-			_log("Tentativa de capturar %s falhou!" % result.target.creature_name)
-
-
-func _set_flee_disabled(value: bool) -> void:
-	if is_instance_valid(flee_button):
-		flee_button.disabled = value
-
-
-func _add_action_button(text: String, callback: Callable) -> void:
-	var button := Button.new()
-	button.text = text
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.focus_mode = Control.FOCUS_NONE
-	button.pressed.connect(callback)
-	action_buttons.add_child(button)
-
-
-func _clear_action_buttons() -> void:
-	for child in action_buttons.get_children():
-		child.queue_free()
-
-
-func _update_hp_label() -> void:
-	var text := ""
-	for c in player_team:
-		text += "%s: %d/%d HP   " % [c.creature_name, c.hp, c.max_hp]
-	text += "\n"
-	for c in enemy_team:
-		text += "%s: %d/%d HP   " % [c.creature_name, c.hp, c.max_hp]
-	hp_label.text = text
-
-
-func _log(text: String) -> void:
-	log_label.text += "\n" + text
+			ui.log_message("Tentativa de capturar %s falhou!" % result.target.creature_name)
