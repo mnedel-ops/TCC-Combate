@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="AlchemonDataBase" format=3 uid="uid://mjh0owhcv1br"]
+
+[ext_resource type="Script" uid="uid://cxfaplp86c865" path="res://Alchemons/AlchemonSheet.gd" id="1_5fle6"]
+[ext_resource type="Script" uid="uid://dbofwuofp1xai" path="res://Alchemons/AlchemonDataBase.gd" id="1_nrgsa"]
+[ext_resource type="Resource" uid="uid://b3mk6fhvww3jr" path="res://Alchemons/Alchemon-Generico.tres" id="2_noolv"]
+
+[resource]
+script = ExtResource("1_nrgsa")
+alchemons = Array[ExtResource("1_5fle6")]([null, ExtResource("2_noolv")])
+metadata/_custom_type_script = "uid://dbofwuofp1xai"

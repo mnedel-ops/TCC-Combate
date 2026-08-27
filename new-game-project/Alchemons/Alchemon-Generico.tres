@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="alchemon_sheet" format=3 uid="uid://b3mk6fhvww3jr"]
+
+[ext_resource type="Script" uid="uid://cxfaplp86c865" path="res://Alchemons/AlchemonSheet.gd" id="1_0qt6n"]
+
+[resource]
+script = ExtResource("1_0qt6n")
+id = 1
+name = "Alchemon"
+max_hp = 33
+metadata/_custom_type_script = "uid://cxfaplp86c865"
