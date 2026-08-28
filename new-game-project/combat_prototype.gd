@@ -1,48 +1,34 @@
 extends Control
 
-## Controller: so orquestra. Le eventos da CombatUI, chama CombatSystem,
-## manda resultado de volta pra CombatUI mostrar. Sem regra de jogo aqui
-## (mora em CombatSystem) e sem manipulacao de Label/Button aqui (mora em CombatUI).
-
 @onready var ui: CombatUI = $VBoxContainer
 
 @export var database: AlchemonDatabase
 @export var player_alchemon_ids: Array[int] = []
 @export var enemy_alchemon_ids: Array[int] = []
+@export var rng_seed: int = 1337
 
-var player_team: Array[AlchemonSheet] = []
-var enemy_team: Array[AlchemonSheet] = []
-var turn_order: Array[AlchemonSheet] = []
-
-var combat_over := false
-var is_resolving := false
-
-var _pending_actions: Array[PendingActionData] = []
-var _current_player_index := 0
+var combat_state: Dictionary = {}
 
 
 func _ready() -> void:
-	player_team = _spawn_team(player_alchemon_ids, true)
-	enemy_team = _spawn_team(enemy_alchemon_ids, false)
+	var player_templates := _build_team_templates(player_alchemon_ids)
+	var enemy_templates := _build_team_templates(enemy_alchemon_ids)
 
-	if player_team.is_empty() or enemy_team.is_empty():
+	if player_templates.is_empty() or enemy_templates.is_empty():
 		push_error("CombatController: time vazio. Confere database e os arrays de ids no Inspector.")
 		ui.set_turn_text("Erro de configuracao - veja o console.")
 		return
 
-
-	turn_order = CombatSystem.roll_initiative(player_team + enemy_team)
+	combat_state = CombatSystem.initialize_state(player_templates, enemy_templates, rng_seed)
+	ui.clear_log()
+	ui.log_message("Combate comecou! %d contra %d." % [player_templates.size(), enemy_templates.size()])
 	_log_initiative_order()
-
-	ui.update_hp(player_team, enemy_team)
-	ui.log_message("Combate comecou! 2 contra 2.")
-	_start_action_selection()
+	_refresh_ui()
+	_advance_flow()
 
 
-# Puxa a ficha-base do database (por id) e cria uma COPIA pra usar nessa
-# batalha - a original no database nunca e mutada por combate nenhum.
-func _spawn_team(ids: Array[int], is_player: bool) -> Array[AlchemonSheet]:
-	var team: Array[AlchemonSheet] = []
+func _build_team_templates(ids: Array[int]) -> Array:
+	var team: Array = []
 	if database == null:
 		push_error("CombatController: nenhum AlchemonDatabase atribuido no Inspector.")
 		return team
@@ -51,213 +37,193 @@ func _spawn_team(ids: Array[int], is_player: bool) -> Array[AlchemonSheet]:
 		var template := database.get_by_id(id)
 		if template == null:
 			continue
-		team.append(_instantiate_from_template(template, is_player))
+		team.append(_sheet_to_template(template))
+
 	return team
 
 
-func _instantiate_from_template(template: AlchemonSheet, is_player: bool) -> AlchemonSheet:
-	var instance: AlchemonSheet = template.duplicate()
-	instance.is_player = is_player
-	instance.hp = instance.max_hp
-	instance.alive = true
-	instance.initiative = 0
-	return instance
+func _sheet_to_template(sheet: AlchemonSheet) -> Dictionary:
+	var attacks: Array = []
+	for attack in sheet.attacks:
+		if attack == null:
+			continue
+		attacks.append({
+			"attack_name": attack.attack_name,
+			"damage": attack.damage,
+		})
+
+	return {
+		"species_id": sheet.id,
+		"creature_name": sheet.creature_name,
+		"max_hp": sheet.max_hp,
+		"attacks": attacks,
+	}
 
 
-func _log_initiative_order() -> void:
-	var order_text := ""
-	for c in turn_order:
-		order_text += "%s (%d)  " % [c.creature_name, c.initiative]
-	ui.log_message("Ordem de iniciativa: " + order_text)
-
-
-func _start_action_selection() -> void:
-	_pending_actions.clear()
-	_current_player_index = 0
-	_prompt_action_for_current_creature()
-
-
-func _prompt_action_for_current_creature() -> void:
-	if _current_player_index >= player_team.size():
-		_queue_enemy_actions()
-		_resolve_round()
+func _advance_flow() -> void:
+	if combat_state.is_empty() or bool(combat_state.get("combat_over", false)):
+		_show_combat_end_if_needed()
 		return
 
-	var actor := player_team[_current_player_index]
-	if not actor.alive:
-		_current_player_index += 1
-		_prompt_action_for_current_creature()
+	match String(combat_state.get("phase", "")):
+		"selecting_actions":
+			var actor_id := CombatSystem.get_current_player_actor_id(combat_state)
+			if actor_id == -1:
+				return
+			_show_action_menu_for_actor(actor_id)
+		"resolving_round":
+			_dispatch_command({"type": "resolve_round"})
+		_:
+			return
+
+
+func _show_action_menu_for_actor(actor_id: int) -> void:
+	var actor := CombatSystem.get_combatant(combat_state, actor_id)
+	if actor.is_empty():
 		return
 
-	_show_action_menu_for_actor(actor)
-
-
-func _show_action_menu_for_actor(actor: AlchemonSheet) -> void:
 	ui.show_action_menu(actor, func(kind: String):
-		if kind == "attack":
-			ui.show_attack_submenu(
-				actor,
-				func(attack: AttackData): _begin_target_selection(actor, "attack", attack),
-				func(): _show_action_menu_for_actor(actor)
-			)
-		elif kind == "flee":
-			_resolve_flee()
-		else:
-			_begin_target_selection(actor, kind, null)
+		match kind:
+			"flee":
+				_dispatch_command({"type": "attempt_flee", "actor_id": actor_id})
+			"attack":
+				ui.show_attack_submenu(
+					actor,
+					func(attack_index: int): _show_target_selection(actor_id, kind, attack_index),
+					func(): _show_action_menu_for_actor(actor_id)
+				)
+			_:
+				_show_target_selection(actor_id, kind, -1)
 	)
 
 
-func _begin_target_selection(actor: AlchemonSheet, kind: String, attack: AttackData) -> void:
-	var candidates: Array[AlchemonSheet] = []
-	match kind:
-		"attack", "capture":
-			candidates = enemy_team.filter(func(c): return c.alive)
-		"item":
-			candidates = player_team.filter(func(c): return c.alive)
+func _show_target_selection(actor_id: int, kind: String, attack_index: int) -> void:
+	var targets: Array[int] = CombatSystem.get_valid_targets(combat_state, actor_id, kind)
+	if targets.is_empty():
+		ui.log_message("Nenhum alvo valido para %s." % kind)
+		_show_action_menu_for_actor(actor_id)
+		return
 
-	ui.set_turn_text("%s: escolha o alvo" % actor.creature_name)
+	var actor := CombatSystem.get_combatant(combat_state, actor_id)
+	ui.set_turn_text("%s: escolha o alvo" % String(actor.get("creature_name", "")))
 
 	var options: Array = []
-	for target in candidates:
+	for target_id in targets:
+		var target := CombatSystem.get_combatant(combat_state, target_id)
 		options.append({
-			"text": "%s (%d/%d HP)" % [target.creature_name, target.hp, target.max_hp],
-			"callback": func(): _confirm_action(actor, kind, target, attack),
+			"text": "%s (%d/%d HP)" % [
+				String(target.get("creature_name", "")),
+				int(target.get("hp", 0)),
+				int(target.get("max_hp", 0)),
+			],
+			"callback": func(chosen_target_id=target_id):
+				_dispatch_command({
+					"type": "queue_action",
+					"actor_id": actor_id,
+					"kind": kind,
+					"target_id": chosen_target_id,
+					"attack_index": attack_index,
+				})
 		})
+
 	options.append({
 		"text": "Voltar",
-		"callback": func(): _show_action_menu_for_actor(actor),
+		"callback": func(): _show_action_menu_for_actor(actor_id),
 	})
 	ui.show_options(options)
 
 
-func _confirm_action(actor: AlchemonSheet, kind: String, target: AlchemonSheet, attack: AttackData) -> void:
-	_pending_actions.append(PendingActionData.new(actor, kind, target, attack))
-	_current_player_index += 1
-	_prompt_action_for_current_creature()
+func _dispatch_command(command: Dictionary) -> void:
+	var result := CombatSystem.apply_command(combat_state, command)
+	combat_state = result.get("state", combat_state)
+	_refresh_ui()
+	_log_events(result.get("events", []))
+	_show_combat_end_if_needed()
+	if not bool(combat_state.get("combat_over", false)):
+		_advance_flow()
 
 
-func _queue_enemy_actions() -> void:
-	for enemy in enemy_team:
-		if not enemy.alive:
-			continue
-		var target := CombatSystem.pick_random_alive_target(player_team)
-		if target == null:
-			continue
-		var attack := CombatSystem.pick_random_attack(enemy)
-		if attack == null:
-			continue
-		_pending_actions.append(PendingActionData.new(enemy, "attack", target, attack))
+func _refresh_ui() -> void:
+	ui.update_from_state(combat_state)
 
 
-func _resolve_round() -> void:
-	is_resolving = true
-	ui.clear_options()
-
-	for combatant in turn_order:
-		if combat_over:
-			break
-		if not combatant.alive:
-			continue
-
-		var action := _find_pending_action(combatant)
-		if action == null:
-			continue
-		if not action.target.alive:
-			ui.log_message("%s nao tem mais alvo valido, acao cancelada." % combatant.creature_name)
-			continue
-
-		ui.set_turn_text("Turno: %s" % combatant.creature_name)
-		_execute_action(action)
-		ui.update_hp(player_team, enemy_team)
-		_check_combat_end()
-
-		if not combat_over:
-			await get_tree().create_timer(0.5).timeout
-
-	if not combat_over:
-		is_resolving = false
-		await get_tree().process_frame   # garante que nunca reentra sincrono (evita stack overflow)
-		_start_action_selection()
+func _log_initiative_order() -> void:
+	var order_ids: Array = combat_state.get("turn_order_ids", [])
+	var order_text := ""
+	for combatant_id in order_ids:
+		var combatant := CombatSystem.get_combatant(combat_state, int(combatant_id))
+		order_text += "%s (%d)  " % [
+			String(combatant.get("creature_name", "")),
+			int(combatant.get("initiative", 0)),
+		]
+	ui.log_message("Ordem de iniciativa: " + order_text)
 
 
-func _find_pending_action(combatant: AlchemonSheet) -> PendingActionData:
-	for action in _pending_actions:
-		if action.actor == combatant:
-			return action
-	return null
+func _log_events(events: Array) -> void:
+	for event in events:
+		_log_event(event)
 
 
-func _execute_action(action: PendingActionData) -> void:
-	var result: Dictionary
-	match action.kind:
-		"attack":
-			result = CombatSystem.resolve_attack(action.actor, action.target, action.attack)
-		"item":
-			result = CombatSystem.resolve_item(action.actor, action.target)
-		"capture":
-			result = CombatSystem.resolve_capture(action.actor, action.target)
-	_log_result(result)
-
-
-func _check_combat_end() -> void:
-	if not CombatSystem.is_team_alive(player_team):
-		_end_combat(false)
-	elif not CombatSystem.is_team_alive(enemy_team):
-		_end_combat(true)
-
-
-func _resolve_flee() -> void:
-	is_resolving = true
-	ui.clear_options()
-	ui.set_turn_text("Equipe tenta fugir...")
-
-	if CombatSystem.attempt_flee():
-		ui.log_message("Fugimos! Escapamos do combate.")
-		queue_free()
-		return
-
-	ui.log_message("Tentativa de fuga falhou!")
-
-	for enemy in enemy_team:
-		if not enemy.alive or combat_over:
-			continue
-		var target := CombatSystem.pick_random_alive_target(player_team)
-		if target == null:
-			continue
-		var attack := CombatSystem.pick_random_attack(enemy)
-		if attack == null:
-			continue
-
-		ui.set_turn_text("Turno: %s" % enemy.creature_name)
-		_log_result(CombatSystem.resolve_attack(enemy, target, attack))
-		ui.update_hp(player_team, enemy_team)
-		_check_combat_end()
-		if combat_over:
-			break
-		await get_tree().create_timer(0.5).timeout
-
-	if not combat_over:
-		is_resolving = false
-		await get_tree().process_frame   # mesma protecao contra recursao sincrona
-		_start_action_selection()
-
-
-func _end_combat(player_won: bool) -> void:
-	combat_over = true
-	ui.show_combat_end(player_won)
-
-
-# Unico lugar que traduz resultado (Dictionary) -> texto pra CombatUI.
-func _log_result(result: Dictionary) -> void:
-	match result.kind:
+func _log_event(event: Dictionary) -> void:
+	var kind := String(event.get("kind", ""))
+	match kind:
 		"attack_miss":
-			ui.log_message("%s usa %s em %s... e erra!" % [result.actor.creature_name, result.attack_name, result.target.creature_name])
+			ui.log_message("%s usa %s em %s... e erra!" % [
+				_name_of(int(event.get("actor_id", -1))),
+				String(event.get("attack_name", "Ataque")),
+				_name_of(int(event.get("target_id", -1))),
+			])
 		"attack_hit":
-			var crit_text := " CRITICO!" if result.critical else ""
-			ui.log_message("%s usa %s em %s! %d de dano.%s" % [result.actor.creature_name, result.attack_name, result.target.creature_name, result.damage, crit_text])
+			var crit_text := " CRITICO!" if bool(event.get("critical", false)) else ""
+			ui.log_message("%s usa %s em %s! %d de dano.%s" % [
+				_name_of(int(event.get("actor_id", -1))),
+				String(event.get("attack_name", "Ataque")),
+				_name_of(int(event.get("target_id", -1))),
+				int(event.get("damage", 0)),
+				crit_text,
+			])
 		"item_used":
-			ui.log_message("%s usa item em %s! Recupera %d HP." % [result.actor.creature_name, result.target.creature_name, result.amount])
+			ui.log_message("%s usa item em %s! Recupera %d HP." % [
+				_name_of(int(event.get("actor_id", -1))),
+				_name_of(int(event.get("target_id", -1))),
+				int(event.get("amount", 0)),
+			])
 		"capture_success":
-			ui.log_message("%s captura %s! Retirado do combate." % [result.actor.creature_name, result.target.creature_name])
+			ui.log_message("%s captura %s! Retirado do combate." % [
+				_name_of(int(event.get("actor_id", -1))),
+				_name_of(int(event.get("target_id", -1))),
+			])
 		"capture_fail":
-			ui.log_message("Tentativa de capturar %s falhou!" % result.target.creature_name)
+			ui.log_message("Tentativa de capturar %s falhou!" % _name_of(int(event.get("target_id", -1))))
+		"action_rejected":
+			ui.log_message("Acao rejeitada: %s" % String(event.get("reason", "invalida")))
+		"action_cancelled":
+			ui.log_message("Acao cancelada: %s" % String(event.get("reason", "sem alvo")))
+		"flee_attempted":
+			ui.log_message("Equipe tenta fugir...")
+		"flee_failed":
+			ui.log_message("Tentativa de fuga falhou!")
+		"flee_success":
+			ui.log_message("Fugimos! Escapamos do combate.")
+		"round_started":
+			ui.log_message("--- Rodada %d ---" % int(event.get("round_number", 0)))
+		"turn_start":
+			ui.set_turn_text("Turno: %s" % _name_of(int(event.get("actor_id", -1))))
+		"combatant_defeated":
+			ui.log_message("%s caiu." % _name_of(int(event.get("combatant_id", -1))))
+		"combat_end":
+			var outcome := String(event.get("outcome", "combat_end"))
+			ui.log_message("Combate encerrado: %s" % outcome)
+		_:
+			pass
+
+
+func _name_of(combatant_id: int) -> String:
+	var combatant := CombatSystem.get_combatant(combat_state, combatant_id)
+	return String(combatant.get("creature_name", "desconhecido"))
+
+
+func _show_combat_end_if_needed() -> void:
+	if not bool(combat_state.get("combat_over", false)):
+		return
+	ui.show_combat_end(String(combat_state.get("outcome", "combat_end")))
