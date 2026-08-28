@@ -6,6 +6,10 @@ extends Control
 
 @onready var ui: CombatUI = $VBoxContainer
 
+@export var database: AlchemonDatabase
+@export var player_alchemon_ids: Array[int] = []
+@export var enemy_alchemon_ids: Array[int] = []
+
 var player_team: Array[AlchemonSheet] = []
 var enemy_team: Array[AlchemonSheet] = []
 var turn_order: Array[AlchemonSheet] = []
@@ -18,16 +22,14 @@ var _current_player_index := 0
 
 
 func _ready() -> void:
-	player_team = [
-		AlchemonSheet.new("Criatura A", 30, true),
-		AlchemonSheet.new("Criatura B", 30, true),
-	]
-	enemy_team = [
-		AlchemonSheet.new("Inimigo A", 30, false),
-		AlchemonSheet.new("Inimigo B", 30, false),
-	]
+	player_team = _spawn_team(player_alchemon_ids, true)
+	enemy_team = _spawn_team(enemy_alchemon_ids, false)
 
-	ui.flee_pressed.connect(_on_flee_pressed)
+	if player_team.is_empty() or enemy_team.is_empty():
+		push_error("CombatController: time vazio. Confere database e os arrays de ids no Inspector.")
+		ui.set_turn_text("Erro de configuracao - veja o console.")
+		return
+
 
 	turn_order = CombatSystem.roll_initiative(player_team + enemy_team)
 	_log_initiative_order()
@@ -35,6 +37,31 @@ func _ready() -> void:
 	ui.update_hp(player_team, enemy_team)
 	ui.log_message("Combate comecou! 2 contra 2.")
 	_start_action_selection()
+
+
+# Puxa a ficha-base do database (por id) e cria uma COPIA pra usar nessa
+# batalha - a original no database nunca e mutada por combate nenhum.
+func _spawn_team(ids: Array[int], is_player: bool) -> Array[AlchemonSheet]:
+	var team: Array[AlchemonSheet] = []
+	if database == null:
+		push_error("CombatController: nenhum AlchemonDatabase atribuido no Inspector.")
+		return team
+
+	for id in ids:
+		var template := database.get_by_id(id)
+		if template == null:
+			continue
+		team.append(_instantiate_from_template(template, is_player))
+	return team
+
+
+func _instantiate_from_template(template: AlchemonSheet, is_player: bool) -> AlchemonSheet:
+	var instance: AlchemonSheet = template.duplicate()
+	instance.is_player = is_player
+	instance.hp = instance.max_hp
+	instance.alive = true
+	instance.initiative = 0
+	return instance
 
 
 func _log_initiative_order() -> void:
@@ -62,15 +89,25 @@ func _prompt_action_for_current_creature() -> void:
 		_prompt_action_for_current_creature()
 		return
 
-	ui.set_turn_text("Acao de %s:" % actor.creature_name)
-	ui.show_options([
-		{"text": "Atacar", "callback": func(): _begin_target_selection(actor, "attack")},
-		{"text": "Item", "callback": func(): _begin_target_selection(actor, "item")},
-		{"text": "Capturar", "callback": func(): _begin_target_selection(actor, "capture")},
-	])
+	_show_action_menu_for_actor(actor)
 
 
-func _begin_target_selection(actor: AlchemonSheet, kind: String) -> void:
+func _show_action_menu_for_actor(actor: AlchemonSheet) -> void:
+	ui.show_action_menu(actor, func(kind: String):
+		if kind == "attack":
+			ui.show_attack_submenu(
+				actor,
+				func(attack: AttackData): _begin_target_selection(actor, "attack", attack),
+				func(): _show_action_menu_for_actor(actor)
+			)
+		elif kind == "flee":
+			_resolve_flee()
+		else:
+			_begin_target_selection(actor, kind, null)
+	)
+
+
+func _begin_target_selection(actor: AlchemonSheet, kind: String, attack: AttackData) -> void:
 	var candidates: Array[AlchemonSheet] = []
 	match kind:
 		"attack", "capture":
@@ -84,13 +121,17 @@ func _begin_target_selection(actor: AlchemonSheet, kind: String) -> void:
 	for target in candidates:
 		options.append({
 			"text": "%s (%d/%d HP)" % [target.creature_name, target.hp, target.max_hp],
-			"callback": func(): _confirm_action(actor, kind, target),
+			"callback": func(): _confirm_action(actor, kind, target, attack),
 		})
+	options.append({
+		"text": "Voltar",
+		"callback": func(): _show_action_menu_for_actor(actor),
+	})
 	ui.show_options(options)
 
 
-func _confirm_action(actor: AlchemonSheet, kind: String, target: AlchemonSheet) -> void:
-	_pending_actions.append(PendingActionData.new(actor, kind, target))
+func _confirm_action(actor: AlchemonSheet, kind: String, target: AlchemonSheet, attack: AttackData) -> void:
+	_pending_actions.append(PendingActionData.new(actor, kind, target, attack))
 	_current_player_index += 1
 	_prompt_action_for_current_creature()
 
@@ -102,13 +143,15 @@ func _queue_enemy_actions() -> void:
 		var target := CombatSystem.pick_random_alive_target(player_team)
 		if target == null:
 			continue
-		_pending_actions.append(PendingActionData.new(enemy, "attack", target))
+		var attack := CombatSystem.pick_random_attack(enemy)
+		if attack == null:
+			continue
+		_pending_actions.append(PendingActionData.new(enemy, "attack", target, attack))
 
 
 func _resolve_round() -> void:
 	is_resolving = true
 	ui.clear_options()
-	ui.set_flee_disabled(true)
 
 	for combatant in turn_order:
 		if combat_over:
@@ -133,7 +176,7 @@ func _resolve_round() -> void:
 
 	if not combat_over:
 		is_resolving = false
-		ui.set_flee_disabled(false)
+		await get_tree().process_frame   # garante que nunca reentra sincrono (evita stack overflow)
 		_start_action_selection()
 
 
@@ -148,7 +191,7 @@ func _execute_action(action: PendingActionData) -> void:
 	var result: Dictionary
 	match action.kind:
 		"attack":
-			result = CombatSystem.resolve_attack(action.actor, action.target)
+			result = CombatSystem.resolve_attack(action.actor, action.target, action.attack)
 		"item":
 			result = CombatSystem.resolve_item(action.actor, action.target)
 		"capture":
@@ -163,16 +206,9 @@ func _check_combat_end() -> void:
 		_end_combat(true)
 
 
-func _on_flee_pressed() -> void:
-	if combat_over or is_resolving:
-		return
-	_resolve_flee()
-
-
 func _resolve_flee() -> void:
 	is_resolving = true
 	ui.clear_options()
-	ui.set_flee_disabled(true)
 	ui.set_turn_text("Equipe tenta fugir...")
 
 	if CombatSystem.attempt_flee():
@@ -188,9 +224,12 @@ func _resolve_flee() -> void:
 		var target := CombatSystem.pick_random_alive_target(player_team)
 		if target == null:
 			continue
+		var attack := CombatSystem.pick_random_attack(enemy)
+		if attack == null:
+			continue
 
 		ui.set_turn_text("Turno: %s" % enemy.creature_name)
-		_log_result(CombatSystem.resolve_attack(enemy, target))
+		_log_result(CombatSystem.resolve_attack(enemy, target, attack))
 		ui.update_hp(player_team, enemy_team)
 		_check_combat_end()
 		if combat_over:
@@ -199,7 +238,7 @@ func _resolve_flee() -> void:
 
 	if not combat_over:
 		is_resolving = false
-		ui.set_flee_disabled(false)
+		await get_tree().process_frame   # mesma protecao contra recursao sincrona
 		_start_action_selection()
 
 
@@ -212,9 +251,10 @@ func _end_combat(player_won: bool) -> void:
 func _log_result(result: Dictionary) -> void:
 	match result.kind:
 		"attack_miss":
-			ui.log_message("%s ataca %s... e erra!" % [result.actor.creature_name, result.target.creature_name])
+			ui.log_message("%s usa %s em %s... e erra!" % [result.actor.creature_name, result.attack_name, result.target.creature_name])
 		"attack_hit":
-			ui.log_message("%s ataca %s! %d de dano." % [result.actor.creature_name, result.target.creature_name, result.damage])
+			var crit_text := " CRITICO!" if result.critical else ""
+			ui.log_message("%s usa %s em %s! %d de dano.%s" % [result.actor.creature_name, result.attack_name, result.target.creature_name, result.damage, crit_text])
 		"item_used":
 			ui.log_message("%s usa item em %s! Recupera %d HP." % [result.actor.creature_name, result.target.creature_name, result.amount])
 		"capture_success":

@@ -6,17 +6,14 @@ extends VBoxContainer
 ## (via sinal) quando o jogador clica em algo. CombatSystem/AlchemonSheet
 ## nao sao mencionados aqui a nao ser pra ler campos de exibicao (nome, hp).
 
-signal flee_pressed
 
 @onready var log_label: Label = $LogLabel
 @onready var hp_label: Label = $HPLabel
 @onready var turn_label: Label = $TurnLabel
 @onready var action_buttons: VBoxContainer = $ActionButtons
-@onready var flee_button: Button = $FleeButton
 
 func _ready() -> void:
-	flee_button.pressed.connect(func(): flee_pressed.emit())
-
+	pass
 
 func log_message(text: String) -> void:
 	log_label.text += "\n" + text
@@ -53,13 +50,41 @@ func clear_options() -> void:
 		child.queue_free()
 
 
-func set_flee_disabled(value: bool) -> void:
-	if is_instance_valid(flee_button):
-		flee_button.disabled = value
-
 
 func show_combat_end(player_won: bool) -> void:
 	set_turn_text("Fim de combate.")
 	log_message("Vitoria!" if player_won else "Derrota!")
 	clear_options()
-	set_flee_disabled(true)
+
+
+# Mostra o menu de acoes principais (Item, Capturar, Ataque) para um ator.
+# action_callback recebe (kind: String) - "item", "capture", ou "attack"
+func show_action_menu(actor: AlchemonSheet, action_callback: Callable) -> void:
+	set_turn_text("Acao de %s:" % actor.creature_name)
+	
+	var options: Array = [
+		{"text": "Ataque", "callback": func(): action_callback.call("attack")},
+		{"text": "Item", "callback": func(): action_callback.call("item")},
+		{"text": "Capturar", "callback": func(): action_callback.call("capture")},
+		{"text": "Fugir", "callback": func(): action_callback.call("flee")},
+	]
+	show_options(options)
+
+
+# Mostra o submenu de ataques especificos de um ator.
+# attack_callback recebe (attack: AttackData)
+# back_callback nao recebe parametros, so volta pro menu anterior
+func show_attack_submenu(actor: AlchemonSheet, attack_callback: Callable, back_callback: Callable) -> void:
+	set_turn_text("Escolha um ataque:")
+	
+	var options: Array = []
+	for attack in actor.attacks:
+		options.append({
+			"text": attack.attack_name,
+			"callback": func(a=attack): attack_callback.call(a),
+		})
+	options.append({
+		"text": "Voltar",
+		"callback": func(): back_callback.call(),
+	})
+	show_options(options)

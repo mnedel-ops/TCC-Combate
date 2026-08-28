@@ -1,10 +1,15 @@
-[gd_resource type="Resource" script_class="alchemon_sheet" format=3 uid="uid://b3mk6fhvww3jr"]
+[gd_resource type="Resource" script_class="AlchemonSheet" format=3 uid="uid://b3mk6fhvww3jr"]
 
 [ext_resource type="Script" uid="uid://cxfaplp86c865" path="res://Alchemons/AlchemonSheet.gd" id="1_0qt6n"]
+[ext_resource type="Script" uid="uid://chjyxlmn2nm8c" path="res://Attack/AttackData.gd" id="1_dx5o1"]
+[ext_resource type="Resource" uid="uid://btpx7i0xrh8u0" path="res://Attack/Scratch.tres" id="2_fyp6i"]
+[ext_resource type="Resource" uid="uid://dmtffltot07ps" path="res://Attack/Tackle.tres" id="3_1yb5k"]
 
 [resource]
 script = ExtResource("1_0qt6n")
-id = 1
-name = "Alchemon"
+id = 0
+creature_name = "Alchemon"
 max_hp = 33
+hp = 33
+attacks = Array[ExtResource("1_dx5o1")]([ExtResource("2_fyp6i"), ExtResource("3_1yb5k")])
 metadata/_custom_type_script = "uid://cxfaplp86c865"
