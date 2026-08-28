@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AlchemonSheet" format=3 uid="uid://d18a5783nwx7j"]
+
+[ext_resource type="Script" uid="uid://cxfaplp86c865" path="res://Alchemons/AlchemonSheet.gd" id="1_bqul4"]
+[ext_resource type="Script" uid="uid://chjyxlmn2nm8c" path="res://Attack/AttackData.gd" id="1_l8r5n"]
+[ext_resource type="Resource" uid="uid://dmtffltot07ps" path="res://Attack/Tackle.tres" id="2_n1kb7"]
+[ext_resource type="Resource" uid="uid://btpx7i0xrh8u0" path="res://Attack/Scratch.tres" id="3_t2qme"]
+
+[resource]
+script = ExtResource("1_bqul4")
+id = 1
+creature_name = "Outro"
+max_hp = 50
+hp = 50
+attacks = Array[ExtResource("1_l8r5n")]([ExtResource("2_n1kb7"), ExtResource("3_t2qme")])
+metadata/_custom_type_script = "uid://cxfaplp86c865"
