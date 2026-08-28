@@ -30,7 +30,6 @@ func _ready() -> void:
 		ui.set_turn_text("Erro de configuracao - veja o console.")
 		return
 
-	ui.flee_pressed.connect(_on_flee_pressed)
 
 	turn_order = CombatSystem.roll_initiative(player_team + enemy_team)
 	_log_initiative_order()
@@ -90,18 +89,22 @@ func _prompt_action_for_current_creature() -> void:
 		_prompt_action_for_current_creature()
 		return
 
-	ui.set_turn_text("Acao de %s:" % actor.creature_name)
+	_show_action_menu_for_actor(actor)
 
-	var options: Array = [
-		{"text": "Item", "callback": func(): _begin_target_selection(actor, "item", null)},
-		{"text": "Capturar", "callback": func(): _begin_target_selection(actor, "capture", null)},
-	]
-	for attack in actor.attacks:
-		options.append({
-			"text": attack.attack_name,
-			"callback": func(): _begin_target_selection(actor, "attack", attack),
-		})
-	ui.show_options(options)
+
+func _show_action_menu_for_actor(actor: AlchemonSheet) -> void:
+	ui.show_action_menu(actor, func(kind: String):
+		if kind == "attack":
+			ui.show_attack_submenu(
+				actor,
+				func(attack: AttackData): _begin_target_selection(actor, "attack", attack),
+				func(): _show_action_menu_for_actor(actor)
+			)
+		elif kind == "flee":
+			_resolve_flee()
+		else:
+			_begin_target_selection(actor, kind, null)
+	)
 
 
 func _begin_target_selection(actor: AlchemonSheet, kind: String, attack: AttackData) -> void:
@@ -120,6 +123,10 @@ func _begin_target_selection(actor: AlchemonSheet, kind: String, attack: AttackD
 			"text": "%s (%d/%d HP)" % [target.creature_name, target.hp, target.max_hp],
 			"callback": func(): _confirm_action(actor, kind, target, attack),
 		})
+	options.append({
+		"text": "Voltar",
+		"callback": func(): _show_action_menu_for_actor(actor),
+	})
 	ui.show_options(options)
 
 
@@ -145,7 +152,6 @@ func _queue_enemy_actions() -> void:
 func _resolve_round() -> void:
 	is_resolving = true
 	ui.clear_options()
-	ui.set_flee_disabled(true)
 
 	for combatant in turn_order:
 		if combat_over:
@@ -170,7 +176,6 @@ func _resolve_round() -> void:
 
 	if not combat_over:
 		is_resolving = false
-		ui.set_flee_disabled(false)
 		await get_tree().process_frame   # garante que nunca reentra sincrono (evita stack overflow)
 		_start_action_selection()
 
@@ -201,16 +206,9 @@ func _check_combat_end() -> void:
 		_end_combat(true)
 
 
-func _on_flee_pressed() -> void:
-	if combat_over or is_resolving:
-		return
-	_resolve_flee()
-
-
 func _resolve_flee() -> void:
 	is_resolving = true
 	ui.clear_options()
-	ui.set_flee_disabled(true)
 	ui.set_turn_text("Equipe tenta fugir...")
 
 	if CombatSystem.attempt_flee():
@@ -240,7 +238,6 @@ func _resolve_flee() -> void:
 
 	if not combat_over:
 		is_resolving = false
-		ui.set_flee_disabled(false)
 		await get_tree().process_frame   # mesma protecao contra recursao sincrona
 		_start_action_selection()
 

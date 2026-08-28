@@ -31,22 +31,6 @@ layout_mode = 2
 [node name="ActionButtons" type="VBoxContainer" parent="VBoxContainer" unique_id=820068257]
 layout_mode = 2
 
-[node name="AttackButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=1701553466]
-layout_mode = 2
-text = "Atacar"
-
-[node name="ItemButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=1671251075]
-layout_mode = 2
-text = "Pocao: curar 6"
-
-[node name="CaptureButton" type="Button" parent="VBoxContainer/ActionButtons" unique_id=2031006231]
-layout_mode = 2
-text = "Capturar"
-
-[node name="FleeButton" type="Button" parent="VBoxContainer" unique_id=1489003061]
-layout_mode = 2
-text = "Fugir"
-
 [node name="LogLabel" type="Label" parent="VBoxContainer" unique_id=632022143]
 layout_mode = 2
 
