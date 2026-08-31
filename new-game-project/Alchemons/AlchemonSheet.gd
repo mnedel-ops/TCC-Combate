@@ -2,7 +2,7 @@ class_name AlchemonSheet
 extends Resource
 
 ## Dado puro - uma criatura em combate. Sem metodos de regra (take_damage,
-## heal etc). Quem manipula esses valores e CombatRules.
+## heal etc). Quem manipula esses valores e o CombatSystem.
 
 @export var id: int = -1
 @export var creature_name: String = ""

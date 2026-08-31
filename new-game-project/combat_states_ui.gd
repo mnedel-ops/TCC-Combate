@@ -1,4 +1,4 @@
-class_name Combat_UI_states
+class_name CombatUI_states
 extends VBoxContainer
 
 ## Gerencia TODA a apresentacao do combate: log, HP, texto de turno, botoes.
@@ -30,7 +30,8 @@ func update_hp(player_team: Array[AlchemonSheet], enemy_team: Array[AlchemonShee
 
 
 # Versao V2, sem depender de AlchemonSheet - recebe so {name, hp, max_hp}.
-# UI recebe entradas prontas para exibicao; so entende Dictionary generico.
+# CombatUI nao precisa saber se o chamador usa referencia direta (V1) ou
+# CombatState por id (V2); so entende Dictionary generico.
 func update_hp_dict(player_entries: Array[Dictionary], enemy_entries: Array[Dictionary]) -> void:
 	var text := ""
 	for e in player_entries:

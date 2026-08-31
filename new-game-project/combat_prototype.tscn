@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://cu7rjl5nf5x3b"]
 
-[ext_resource type="Script" uid="uid://dxtvb8ic4qnok" path="res://prototype/v1/combat_prototype.gd" id="1_mqu1t"]
+[ext_resource type="Script" uid="uid://dxtvb8ic4qnok" path="res://combat_prototype.gd" id="1_mqu1t"]
 [ext_resource type="Resource" uid="uid://mjh0owhcv1br" path="res://Alchemons/AlchemonDataBaseComplete.tres" id="2_5f13y"]
-[ext_resource type="Script" uid="uid://dqisu1adqgw7o" path="res://prototype/v1/UserInterface/combat_ui.gd" id="2_a14sk"]
+[ext_resource type="Script" uid="uid://dqisu1adqgw7o" path="res://UserInterface/combat_ui.gd" id="2_a14sk"]
 
 [node name="CombatPrototype" type="Control" unique_id=1823080993]
 layout_mode = 3

@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="tcc-combat"
-run/main_scene="uid://yxexhbeiqxdr"
+run/main_scene="uid://cu7rjl5nf5x3b"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 
@@ -22,12 +22,6 @@ folder_colors={
 "res://Attack/": "orange",
 "res://UserInterface/": "yellow"
 }
-
-[gdunit4]
-
-settings/common/update_notification_enabled=false
-settings/test/test_discovery=true
-ui/toolbar/run_overall=true
 
 [physics]
 
