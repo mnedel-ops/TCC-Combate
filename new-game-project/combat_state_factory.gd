@@ -2,9 +2,7 @@ class_name CombatStateFactory
 extends RefCounted
 
 ## Constroi um CombatState inicial a partir do database + listas de species_id.
-## Nao decide regra de combate (isso e CombatSystem) - so monta o estado
-## inicial. Ainda NAO esta ligado ao Controller atual; e o alicerce pra
-## quando migrarmos o fluxo real (fase B do plano).
+## Nao decide regra de combate (isso e CombatRules); so monta estado inicial.
 
 static func build(database: AlchemonDatabase, player_species_ids: Array[int], enemy_species_ids: Array[int]) -> CombatState:
 	var state := CombatState.new()
