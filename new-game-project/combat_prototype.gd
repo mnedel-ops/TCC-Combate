@@ -30,6 +30,7 @@ func _ready() -> void:
 		ui.set_turn_text("Erro de configuracao - veja o console.")
 		return
 
+
 	turn_order = CombatSystem.roll_initiative(player_team + enemy_team)
 	_log_initiative_order()
 
@@ -88,19 +89,22 @@ func _prompt_action_for_current_creature() -> void:
 		_prompt_action_for_current_creature()
 		return
 
-	ui.set_turn_text("Acao de %s:" % actor.creature_name)
+	_show_action_menu_for_actor(actor)
 
-	var options: Array = [
-		{"text": "Item", "callback": func(): _begin_target_selection(actor, "item", null)},
-		{"text": "Capturar", "callback": func(): _begin_target_selection(actor, "capture", null)},
-		{"text": "Fugir", "callback": _on_flee_pressed},
-	]
-	for attack in actor.attacks:
-		options.append({
-			"text": attack.attack_name,
-			"callback": func(): _begin_target_selection(actor, "attack", attack),
-		})
-	ui.show_options(options)
+
+func _show_action_menu_for_actor(actor: AlchemonSheet) -> void:
+	ui.show_action_menu(actor, func(kind: String):
+		if kind == "attack":
+			ui.show_attack_submenu(
+				actor,
+				func(attack: AttackData): _begin_target_selection(actor, "attack", attack),
+				func(): _show_action_menu_for_actor(actor)
+			)
+		elif kind == "flee":
+			_resolve_flee()
+		else:
+			_begin_target_selection(actor, kind, null)
+	)
 
 
 func _begin_target_selection(actor: AlchemonSheet, kind: String, attack: AttackData) -> void:
@@ -119,6 +123,10 @@ func _begin_target_selection(actor: AlchemonSheet, kind: String, attack: AttackD
 			"text": "%s (%d/%d HP)" % [target.creature_name, target.hp, target.max_hp],
 			"callback": func(): _confirm_action(actor, kind, target, attack),
 		})
+	options.append({
+		"text": "Voltar",
+		"callback": func(): _show_action_menu_for_actor(actor),
+	})
 	ui.show_options(options)
 
 
@@ -196,12 +204,6 @@ func _check_combat_end() -> void:
 		_end_combat(false)
 	elif not CombatSystem.is_team_alive(enemy_team):
 		_end_combat(true)
-
-
-func _on_flee_pressed() -> void:
-	if combat_over or is_resolving:
-		return
-	_resolve_flee()
 
 
 func _resolve_flee() -> void:
