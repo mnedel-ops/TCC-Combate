@@ -14,29 +14,36 @@ const CRIT_ROLL_MAX := 20
 const CRIT_MULTIPLIER := 1.5
 
 
-static func roll_initiative(state: CombatState) -> void:
-	var all_ids: Array[int] = state.player_ids + state.enemy_ids
+static func roll_initiative(state: CombatState) -> TransitionResult:
+	var next_state := state.clone()
+	var all_ids: Array[int] = next_state.player_ids + next_state.enemy_ids
 	for id in all_ids:
-		state.get_combatant(id).initiative = randi_range(1, 20)
+		next_state.get_combatant(id).initiative = randi_range(1, 20)
 
-	all_ids.sort_custom(func(a, b): return state.get_combatant(a).initiative > state.get_combatant(b).initiative)
-	state.turn_order_ids = all_ids
+	all_ids.sort_custom(func(a, b): return next_state.get_combatant(a).initiative > next_state.get_combatant(b).initiative)
+	next_state.turn_order_ids = all_ids
+	return TransitionResult.new(next_state, {"kind": "initiative_rolled"})
 
 
-static func resolve_action(state: CombatState, command: ActionCommand, database: AlchemonDatabase) -> Dictionary:
-	var actor := state.get_combatant(command.actor_id)
+static func resolve_action(state: CombatState, command: ActionCommand, database: AlchemonDatabase) -> TransitionResult:
+	var next_state := state.clone()
+	var actor := next_state.get_combatant(command.actor_id)
 	if actor == null or not actor.alive:
-		return {"kind": "cancelled", "reason": "actor_dead"}
+		return TransitionResult.new(next_state, {"kind": "cancelled", "reason": "actor_dead"})
 
+	var event: Dictionary
 	match command.kind:
 		"attack":
-			return _resolve_attack(state, command, database)
+			event = _resolve_attack(next_state, command, database)
 		"item":
-			return _resolve_item(state, command)
+			event = _resolve_item(next_state, command)
 		"capture":
-			return _resolve_capture(state, command)
+			event = _resolve_capture(next_state, command)
 		_:
-			return {"kind": "unknown_command"}
+			event = {"kind": "unknown_command"}
+
+	_check_combat_end_in_place(next_state)
+	return TransitionResult.new(next_state, event)
 
 
 static func _resolve_attack(state: CombatState, command: ActionCommand, database: AlchemonDatabase) -> Dictionary:
@@ -102,7 +109,13 @@ static func attempt_flee() -> bool:
 	return randf() < FLEE_CHANCE
 
 
-static func check_combat_end(state: CombatState) -> void:
+static func check_combat_end(state: CombatState) -> TransitionResult:
+	var next_state := state.clone()
+	_check_combat_end_in_place(next_state)
+	return TransitionResult.new(next_state, {"kind": "combat_end_checked"})
+
+
+static func _check_combat_end_in_place(state: CombatState) -> void:
 	if state.get_alive_ids(state.player_ids).is_empty():
 		state.combat_over = true
 		state.player_won = false

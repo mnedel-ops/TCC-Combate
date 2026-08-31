@@ -25,3 +25,11 @@ func _init(
 	max_hp = p_max_hp
 	hp = p_max_hp
 	is_player = p_is_player
+
+
+func clone() -> CombatantState:
+	var copy := CombatantState.new(id, species_id, max_hp, is_player)
+	copy.hp = hp
+	copy.initiative = initiative
+	copy.alive = alive
+	return copy

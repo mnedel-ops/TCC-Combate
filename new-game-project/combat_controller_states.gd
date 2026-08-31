@@ -25,7 +25,7 @@ func _ready() -> void:
 		ui.set_turn_text("Erro de configuracao - veja o console.")
 		return
 
-	CombatRules.roll_initiative(state)
+	state = CombatRules.roll_initiative(state).state
 	_log_initiative_order()
 
 	_refresh_hp_display()
@@ -154,10 +154,10 @@ func _resolve_round() -> void:
 			continue
 
 		ui.set_turn_text("Turno: %s" % _name_of(actor_id))
-		var event := CombatRules.resolve_action(state, command, database)
-		_log_event(event)
+		var transition := CombatRules.resolve_action(state, command, database)
+		state = transition.state
+		_log_event(transition.event)
 		_refresh_hp_display()
-		CombatRules.check_combat_end(state)
 
 		if not state.combat_over:
 			await get_tree().create_timer(0.5).timeout
@@ -201,10 +201,10 @@ func _resolve_flee() -> void:
 
 		ui.set_turn_text("Turno: %s" % _name_of(enemy_id))
 		var command := ActionCommand.new(enemy_id, "attack", target_id, attack_index)
-		var event := CombatRules.resolve_action(state, command, database)
-		_log_event(event)
+		var transition := CombatRules.resolve_action(state, command, database)
+		state = transition.state
+		_log_event(transition.event)
 		_refresh_hp_display()
-		CombatRules.check_combat_end(state)
 		if state.combat_over:
 			break
 		await get_tree().create_timer(0.5).timeout

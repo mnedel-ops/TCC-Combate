@@ -33,3 +33,21 @@ func get_alive_ids(ids: Array[int]) -> Array[int]:
 		if c != null and c.alive:
 			alive_ids.append(id)
 	return alive_ids
+
+
+## Copia profunda para que regras possam produzir um novo snapshot sem
+## compartilhar CombatantState (nem comandos pendentes) com estado anterior.
+func clone() -> CombatState:
+	var copy := CombatState.new()
+	for id in combatants:
+		copy.combatants[id] = (combatants[id] as CombatantState).clone()
+	copy.player_ids = player_ids.duplicate()
+	copy.enemy_ids = enemy_ids.duplicate()
+	copy.turn_order_ids = turn_order_ids.duplicate()
+	for command in pending_actions:
+		copy.pending_actions.append(command.clone())
+	copy.round_number = round_number
+	copy.phase = phase
+	copy.combat_over = combat_over
+	copy.player_won = player_won
+	return copy

@@ -19,3 +19,7 @@ func _init(
 	kind = p_kind
 	target_id = p_target_id
 	attack_index = p_attack_index
+
+
+func clone() -> ActionCommand:
+	return ActionCommand.new(actor_id, kind, target_id, attack_index)

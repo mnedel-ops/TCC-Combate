@@ -15,6 +15,10 @@ run/main_scene="uid://cu7rjl5nf5x3b"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gdUnit4/plugin.cfg")
+
 [file_customization]
 
 folder_colors={
@@ -31,3 +35,4 @@ folder_colors={
 
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="gl_compatibility"
