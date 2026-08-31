@@ -2,8 +2,8 @@ class_name CombatState
 extends Resource
 
 ## Contrato de estado - TUDO que existe durante uma batalha vive aqui.
-## Nenhum metodo de regra de jogo (isso vai pro CombatSystem, no proximo
-## passo da refatoracao). Os unicos metodos aqui sao acessores triviais,
+## Nenhum metodo de regra de jogo (isso mora em CombatRules). Os unicos
+## metodos aqui sao acessores triviais,
 ## equivalentes a Dictionary.get() com tipo - nao decidem nada.
 
 @export var combatants: Dictionary = {}      # int (instance id) -> CombatantState
