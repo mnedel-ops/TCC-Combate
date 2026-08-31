@@ -157,6 +157,9 @@ func _resolve_round() -> void:
 		var transition := CombatRules.resolve_action(state, command, database)
 		state = transition.state
 		_log_events(transition.events)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 		_refresh_hp_display()
 		CombatRules.check_combat_end(state)
@@ -213,6 +216,9 @@ func _resolve_flee() -> void:
 		var transition := CombatRules.resolve_action(state, command, database)
 		state = transition.state
 		_log_events(transition.events)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 		_refresh_hp_display()
 		CombatRules.check_combat_end(state)

@@ -24,6 +24,9 @@ static func roll_initiative(state: CombatState) -> void:
 	all_ids.sort_custom(func(a, b): return next_state.get_combatant(a).initiative > next_state.get_combatant(b).initiative)
 	next_state.turn_order_ids = all_ids
 	return TransitionResult.new(next_state, [CombatEvent.initiative_rolled()])
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
 
@@ -31,8 +34,14 @@ static func resolve_action(state: CombatState, command: ActionCommand, database:
 	var actor := state.get_combatant(command.actor_id)
 	if actor == null or not actor.alive:
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 		return {"kind": "cancelled", "reason": "actor_dead"}
 
+=======
+		return TransitionResult.new(next_state, [CombatEvent.cancelled("actor_dead")])
+
+	var event: CombatEvent
+>>>>>>> Stashed changes
 =======
 		return TransitionResult.new(next_state, [CombatEvent.cancelled("actor_dead")])
 
@@ -47,8 +56,11 @@ static func resolve_action(state: CombatState, command: ActionCommand, database:
 			return _resolve_capture(state, command)
 		_:
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 			return {"kind": "unknown_command"}
 =======
+=======
+>>>>>>> Stashed changes
 			event = CombatEvent.unknown_command()
 
 	var events: Array[CombatEvent] = [event]
@@ -56,6 +68,9 @@ static func resolve_action(state: CombatState, command: ActionCommand, database:
 	if combat_end_event != null:
 		events.append(combat_end_event)
 	return TransitionResult.new(next_state, events)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
 
@@ -142,6 +157,9 @@ static func end_round(state: CombatState) -> TransitionResult:
 static func _check_combat_end_in_place(state: CombatState) -> CombatEvent:
 	if state.combat_over:
 		return null
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 	if state.get_alive_ids(state.player_ids).is_empty():
 		state.combat_over = true

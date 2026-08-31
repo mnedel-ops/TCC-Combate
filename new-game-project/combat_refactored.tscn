@@ -14,7 +14,11 @@ grow_vertical = 2
 script = ExtResource("1_dg64o")
 database = ExtResource("2_vo0t6")
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 player_species_ids = Array[int]([1, 1])
+=======
+player_species_ids = Array[int]([0, 0])
+>>>>>>> Stashed changes
 =======
 player_species_ids = Array[int]([0, 0])
 >>>>>>> Stashed changes
