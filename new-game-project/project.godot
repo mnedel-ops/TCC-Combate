@@ -37,3 +37,4 @@ ui/toolbar/run_overall=true
 
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="gl_compatibility"
