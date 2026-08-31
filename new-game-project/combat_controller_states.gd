@@ -1,12 +1,9 @@
 extends Control
 
-## Controller V2 - so orquestra. Nenhuma regra aqui (mora em CombatRules).
-## Nenhuma manipulacao de Label/Button aqui (mora em CombatUI, reusada
-## como esta - so ganhou 1 metodo novo, update_hp_dict).
-## Coexiste com combat_prototype.gd (V1) - troque o script do no raiz
-## pra alternar entre as duas versoes sem apagar nenhuma delas.
+## Controller - so orquestra. Nenhuma regra aqui (mora em CombatRules).
+## Nenhuma manipulacao de Label/Button aqui (mora em Combat_UI_states).
 
-@onready var ui: CombatUI_states = $VBoxContainer
+@onready var ui: Combat_UI_states = $VBoxContainer
 
 @export var database: AlchemonDatabase
 @export var player_species_ids: Array[int] = []
@@ -15,7 +12,6 @@ extends Control
 var state: CombatState
 var _selection_order: Array[int] = []
 var _current_player_index := 0
-
 
 func _ready() -> void:
 	state = CombatStateFactory.build(database, player_species_ids, enemy_species_ids)
@@ -154,8 +150,10 @@ func _resolve_round() -> void:
 			continue
 
 		ui.set_turn_text("Turno: %s" % _name_of(actor_id))
-		var event := CombatRules.resolve_action(state, command, database)
-		_log_event(event)
+		var transition := CombatRules.resolve_action(state, command, database)
+		state = transition.state
+		_log_events(transition.events)
+
 		_refresh_hp_display()
 		CombatRules.check_combat_end(state)
 
@@ -165,6 +163,9 @@ func _resolve_round() -> void:
 	if state.combat_over:
 		_show_combat_end()
 	else:
+		var round_transition := CombatRules.end_round(state)
+		state = round_transition.state
+		_log_events(round_transition.events)
 		state.phase = "selecting_actions"
 		await get_tree().process_frame   # evita recursao sincrona (mesmo fix do V1)
 		_start_action_selection()
@@ -201,8 +202,17 @@ func _resolve_flee() -> void:
 
 		ui.set_turn_text("Turno: %s" % _name_of(enemy_id))
 		var command := ActionCommand.new(enemy_id, "attack", target_id, attack_index)
+<<<<<<< Updated upstream
 		var event := CombatRules.resolve_action(state, command, database)
 		_log_event(event)
+=======
+		var transition := CombatRules.resolve_action(state, command, database)
+		state = transition.state
+		_log_events(transition.events)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 		_refresh_hp_display()
 		CombatRules.check_combat_end(state)
 		if state.combat_over:
@@ -221,18 +231,28 @@ func _show_combat_end() -> void:
 	ui.show_combat_end(state.player_won)
 
 
-func _log_event(event: Dictionary) -> void:
-	match event.get("kind"):
-		"attack_miss":
+func _log_events(events: Array[CombatEvent]) -> void:
+	for event in events:
+		_log_event(event)
+
+
+func _log_event(event: CombatEvent) -> void:
+	match event.kind:
+		CombatEvent.Kind.ATTACK_MISS:
 			ui.log_message("%s usa %s em %s... e erra!" % [_name_of(event.actor_id), event.attack_name, _name_of(event.target_id)])
-		"attack_hit":
+		CombatEvent.Kind.ATTACK_HIT:
 			var crit_text := " CRITICO!" if event.critical else ""
 			ui.log_message("%s usa %s em %s! %d de dano.%s" % [_name_of(event.actor_id), event.attack_name, _name_of(event.target_id), event.damage, crit_text])
-		"item_used":
+		CombatEvent.Kind.ITEM_USED:
 			ui.log_message("%s usa item em %s! Recupera %d HP." % [_name_of(event.actor_id), _name_of(event.target_id), event.amount])
-		"capture_success":
+		CombatEvent.Kind.CAPTURE_SUCCESS:
 			ui.log_message("%s captura %s! Retirado do combate." % [_name_of(event.actor_id), _name_of(event.target_id)])
-		"capture_fail":
+		CombatEvent.Kind.CAPTURE_FAIL:
 			ui.log_message("Tentativa de capturar %s falhou!" % _name_of(event.target_id))
-		"cancelled":
-			ui.log_message("Acao cancelada (%s)." % event.get("reason", "motivo desconhecido"))
+		CombatEvent.Kind.CANCELLED:
+			ui.log_message("Acao cancelada (%s)." % event.reason)
+		CombatEvent.Kind.ROUND_ENDED:
+			ui.log_message("Fim da rodada %d." % event.round_number)
+		CombatEvent.Kind.COMBAT_ENDED:
+			var outcome := "Vitoria do jogador." if event.player_won else "Derrota do jogador."
+			ui.log_message("Combate encerrado. " + outcome)
