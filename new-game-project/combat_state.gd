@@ -13,15 +13,18 @@ extends Resource
 @export var pending_actions: Array[ActionCommand] = []
 
 @export var round_number: int = 0
-@export var phase: String = "selecting_actions"  # selecting_actions | resolving_round | combat_over
+@export var phase: String = BattlePhaseMachine.ENCOUNTER_START
 @export var combat_over: bool = false
 @export var player_won: bool = false
 
 var battlefield: Battlefield
+var battle_phase: BattlePhaseMachine
 
 
 func _init() -> void:
 	battlefield = Battlefield.new()
+	battle_phase = BattlePhaseMachine.new(BattlePhaseMachine.ENCOUNTER_START)
+	phase = battle_phase.current_phase()
 
 
 func get_combatant(id: int) -> CombatantState:

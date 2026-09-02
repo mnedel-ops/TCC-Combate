@@ -111,13 +111,20 @@ static func attempt_flee() -> bool:
 
 static func check_combat_end(state: CombatState) -> void:
 	if state.get_alive_ids(state.player_ids).is_empty():
-		state.combat_over = true
-		state.player_won = false
-		state.phase = "combat_over"
+		_mark_battle_outcome(state, false)
 	elif state.get_alive_ids(state.enemy_ids).is_empty():
-		state.combat_over = true
-		state.player_won = true
-		state.phase = "combat_over"
+		_mark_battle_outcome(state, true)
+
+
+static func _mark_battle_outcome(state: CombatState, player_won: bool) -> void:
+	state.combat_over = true
+	state.player_won = player_won
+	if state.battle_phase == null:
+		state.battle_phase = BattlePhaseMachine.new(BattlePhaseMachine.COMBAT_OVER)
+
+	state.battle_phase.transition(BattlePhaseMachine.COMBAT_OVER)
+	state.battle_phase.transition(BattlePhaseMachine.VICTORY if player_won else BattlePhaseMachine.DEFEAT)
+	state.phase = state.battle_phase.current_phase()
 
 
 static func pick_random_alive_target_id(state: CombatState, team_ids: Array[int]) -> int:
