@@ -1,10 +1,9 @@
 class_name CombatRules
 extends RefCounted
 
-## Sistema puro (V2) operando sobre CombatState + ActionCommand + AlchemonDatabase.
-## Convive com combat_system.gd (V1, que ainda roda a versao em producao) ate
-## a migracao ser validada. Eventos usam ids - quem exibe resolve nome via
-## AlchemonDatabase, nunca aqui dentro.
+## Pure rules engine operating on CombatState + ActionCommand + AlchemonDatabase.
+## Stateless, deterministic (except for randomness). Events use IDs; UI resolves names
+## via AlchemonDatabase at display time, never here.
 
 const MISS_CHANCE := 1.0 / 6.0
 const FLEE_CHANCE := 5.0 / 6.0

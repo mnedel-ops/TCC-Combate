@@ -185,7 +185,7 @@ gdUnit4 test/unit/test_battlefield_slots.gd
 | `CLAUDE.md` | +5 lines | Documentation |
 | **New files** | **600+ lines** | `battlefield.gd`, `battlefield_slot.gd`, `BATTLEFIELD_SLOTS.md`, `test_battlefield_slots.gd` |
 
-All changes maintain backward compatibility with V1 production code (coexisting in prototype/).
+All changes follow the V2 data-oriented architecture (pure functions, dictionary events, no state retention).
 
 ---
 

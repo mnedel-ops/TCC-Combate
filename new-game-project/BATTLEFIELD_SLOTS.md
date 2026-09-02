@@ -137,7 +137,7 @@ func get_valid_targets_including_untargetable(actor_id: int) -> Array[int]:
 # Battlefield tracks targetable slots separately
 func get_targetable_slots(is_player: bool) -> Array[int]:
   return get_occupied_side_slots(is_player).filter(func(slot):
-    return not is_untargetable_slot(slot))
+	return not is_untargetable_slot(slot))
 ```
 
 For now, all alive combatants are targetable. Add the flag when GDD requires it.

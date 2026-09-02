@@ -4,7 +4,7 @@
 - **Engine**: Godot 4.6 | **Language**: GDScript
 - **Game**: Alchemons (creature-capture RPG)
 - **Scope**: 2v2 simultaneous turn-based combat, speed ordering, capture/item systems
-- **Status**: V2 refactor (data-oriented) live alongside V1 production code
+- **Status**: V2 (data-oriented, production-ready)
 
 ## Conventions
 
@@ -50,11 +50,10 @@
 ├── combat_controller_states.gd  # Phase FSM
 ├── combat_event.gd              # Event log entry
 ├── combat_states_ui.gd          # UI presentation
-├── combat_refactored.tscn       # Main scene (V2)
+├── combat_refactored.tscn       # Main scene
 ├── BATTLEFIELD_SLOTS.md         # Slot system documentation
 ├── Alchemons/                   # Database: AlchemonDataBase.gd, AlchemonSheet.gd, *.tres
 ├── Attack/                      # AttackData.gd, *.tres
-├── prototype/v1/                # Legacy V1 (still in production)
 └── test/unit/test_combat_rules.gd
 ```
 

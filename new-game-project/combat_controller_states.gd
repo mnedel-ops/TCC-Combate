@@ -1,10 +1,7 @@
 extends Control
 
-## Controller V2 - so orquestra. Nenhuma regra aqui (mora em CombatRules).
-## Nenhuma manipulacao de Label/Button aqui (mora em CombatUI, reusada
-## como esta - so ganhou 1 metodo novo, update_hp_dict).
-## Coexiste com combat_prototype.gd (V1) - troque o script do no raiz
-## pra alternar entre as duas versoes sem apagar nenhuma delas.
+## Combat state machine controller. Orchestrates battle phases.
+## Rules are in CombatRules. UI is in Combat_UI_states.
 
 @onready var ui: Combat_UI_states = $VBoxContainer
 
@@ -166,7 +163,7 @@ func _resolve_round() -> void:
 		_show_combat_end()
 	else:
 		state.phase = "selecting_actions"
-		await get_tree().process_frame   # evita recursao sincrona (mesmo fix do V1)
+		await get_tree().process_frame   # avoid infinite recursion
 		_start_action_selection()
 
 

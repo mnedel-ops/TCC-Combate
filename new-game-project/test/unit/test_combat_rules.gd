@@ -104,12 +104,11 @@ func test_attack_without_valid_attack_index_is_cancelled() -> void:
 
 func test_capture_success_kills_and_frees_slot() -> void:
 	var state := _build_state()
-	var db := _build_database()
 	var enemy_slot := state.get_combatant(ENEMY_ID).slot
 	
 	# Set seed to get deterministic capture success
 	seed(1)
-	var result := CombatRules._resolve_capture(state, ActionCommand.new(PLAYER_ID, "capture", ENEMY_ID, 0), db)
+	var result := CombatRules._resolve_capture(state, ActionCommand.new(PLAYER_ID, "capture", ENEMY_ID, 0))
 	
 	# If successful, target dies and slot frees
 	if result["kind"] == "capture_success":
