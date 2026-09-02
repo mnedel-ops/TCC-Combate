@@ -34,8 +34,14 @@ static func is_enemy_slot(slot: int) -> bool:
 
 
 static func get_side_slots(is_player: bool) -> Array[int]:
-	return [PLAYER_SLOT_1, PLAYER_SLOT_2] if is_player else [ENEMY_SLOT_1, ENEMY_SLOT_2]
+	if is_player:
+		return [PLAYER_SLOT_1, PLAYER_SLOT_2]
+	else:
+		return [ENEMY_SLOT_1, ENEMY_SLOT_2]
 
 
 static func get_opposite_side_slots(is_player: bool) -> Array[int]:
-	return [ENEMY_SLOT_1, ENEMY_SLOT_2] if is_player else [PLAYER_SLOT_1, PLAYER_SLOT_2]
+	if is_player:
+		return [ENEMY_SLOT_1, ENEMY_SLOT_2]
+	else:
+		return [PLAYER_SLOT_1, PLAYER_SLOT_2]

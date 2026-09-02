@@ -95,7 +95,7 @@ if result.kind == "cancelled":
   if result.reason == "target_dead":
     print("Target is dead")
   elif result.reason == "invalid_target":
-    print("Target not on opposing side (shouldn't happen in normal combat)")
+	print("Target not on opposing side (shouldn't happen in normal combat)")
 ```
 
 ## Capture (Also Frees Slot)
