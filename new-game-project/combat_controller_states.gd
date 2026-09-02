@@ -6,7 +6,7 @@ extends Control
 ## Coexiste com combat_prototype.gd (V1) - troque o script do no raiz
 ## pra alternar entre as duas versoes sem apagar nenhuma delas.
 
-@onready var ui: CombatUI_states = $VBoxContainer
+@onready var ui: Combat_UI_states = $VBoxContainer
 
 @export var database: AlchemonDatabase
 @export var player_species_ids: Array[int] = []

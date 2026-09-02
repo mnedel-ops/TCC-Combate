@@ -45,6 +45,10 @@ static func _resolve_attack(state: CombatState, command: ActionCommand, database
 	if target == null or not target.alive:
 		return {"kind": "cancelled", "reason": "target_dead", "actor_id": actor.id}
 
+	# Validate target is on opposing side via battlefield
+	if target.id not in state.get_valid_targets(actor.id):
+		return {"kind": "cancelled", "reason": "invalid_target", "actor_id": actor.id}
+
 	var template := database.get_by_id(actor.species_id)
 	var valid_index := command.attack_index >= 0 and command.attack_index < template.attacks.size()
 	if not valid_index:
@@ -63,6 +67,8 @@ static func _resolve_attack(state: CombatState, command: ActionCommand, database
 	target.hp = max(target.hp - damage, 0)
 	if target.hp == 0:
 		target.alive = false
+		# Free the slot when combatant dies
+		state.battlefield.free_slot(target.slot)
 
 	return {
 		"kind": "attack_hit",
@@ -93,6 +99,8 @@ static func _resolve_capture(state: CombatState, command: ActionCommand) -> Dict
 	if randf() < CAPTURE_CHANCE:
 		target.alive = false
 		target.hp = 0
+		# Free the slot when combatant is captured
+		state.battlefield.free_slot(target.slot)
 		return {"kind": "capture_success", "actor_id": actor.id, "target_id": target.id}
 
 	return {"kind": "capture_fail", "actor_id": actor.id, "target_id": target.id}

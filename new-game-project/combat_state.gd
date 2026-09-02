@@ -17,6 +17,12 @@ extends Resource
 @export var combat_over: bool = false
 @export var player_won: bool = false
 
+var battlefield: Battlefield
+
+
+func _init() -> void:
+	battlefield = Battlefield.new()
+
 
 func get_combatant(id: int) -> CombatantState:
 	return combatants.get(id)
@@ -33,3 +39,19 @@ func get_alive_ids(ids: Array[int]) -> Array[int]:
 		if c != null and c.alive:
 			alive_ids.append(id)
 	return alive_ids
+
+
+## Get all alive combatants occupying slots on the given side.
+func get_alive_opposing_combatants(is_player: bool) -> Array[int]:
+	var opposing_ids := battlefield.get_opposing_combatants(is_player)
+	return get_alive_ids(opposing_ids)
+
+
+## Get all valid targetable combatants from a given actor's perspective.
+## Only includes combatants alive and on the opposite side.
+func get_valid_targets(actor_id: int) -> Array[int]:
+	var actor := get_combatant(actor_id)
+	if actor == null:
+		return []
+	return get_alive_opposing_combatants(actor.is_player)
+

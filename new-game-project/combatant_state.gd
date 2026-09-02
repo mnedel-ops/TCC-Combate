@@ -8,6 +8,7 @@ extends Resource
 
 @export var id: int = -1              # id de INSTANCIA nessa batalha (unico por combatente, nao por especie)
 @export var species_id: int = -1      # chave pra buscar nome/ataques no AlchemonDatabase
+@export var slot: int = -1            # battlefield slot position (BattlefieldSlot.*)
 @export var hp: int = 0
 @export var max_hp: int = 0
 @export var initiative: int = 0
@@ -18,10 +19,12 @@ func _init(
 	p_id: int = -1,
 	p_species_id: int = -1,
 	p_max_hp: int = 0,
-	p_is_player: bool = false
+	p_is_player: bool = false,
+	p_slot: int = -1
 ) -> void:
 	id = p_id
 	species_id = p_species_id
 	max_hp = p_max_hp
 	hp = p_max_hp
 	is_player = p_is_player
+	slot = p_slot
