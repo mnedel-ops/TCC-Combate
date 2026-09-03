@@ -23,6 +23,8 @@ func _ready() -> void:
 		return
 
 	CombatRules.roll_initiative(state)
+	state.battle_phase = BattlePhaseMachine.new(BattlePhaseMachine.ENCOUNTER_START)
+	state.phase = state.battle_phase.current_phase()
 	_log_initiative_order()
 
 	_refresh_hp_display()
@@ -56,7 +58,22 @@ func _refresh_hp_display() -> void:
 	ui.update_hp_dict(player_entries, enemy_entries)
 
 
+func _advance_phase(next_phase: String) -> bool:
+	if not state.battle_phase.transition(next_phase):
+		push_error("Invalid battle transition: %s -> %s" % [state.battle_phase.current_phase(), next_phase])
+		return false
+	state.phase = state.battle_phase.current_phase()
+	return true
+
+
 func _start_action_selection() -> void:
+	if state.combat_over:
+		return
+	if state.battle_phase.current_phase() == BattlePhaseMachine.ENCOUNTER_START:
+		_advance_phase(BattlePhaseMachine.SELECTING_ACTIONS)
+	elif state.battle_phase.current_phase() == BattlePhaseMachine.END_OF_ROUND:
+		_advance_phase(BattlePhaseMachine.SELECTING_ACTIONS)
+
 	state.pending_actions.clear()
 	_selection_order = state.get_alive_ids(state.player_ids)
 	_current_player_index = 0
@@ -135,7 +152,8 @@ func _find_command_for(actor_id: int) -> ActionCommand:
 
 
 func _resolve_round() -> void:
-	state.phase = "resolving_round"
+	if not _advance_phase(BattlePhaseMachine.RESOLVING_ACTIONS):
+		return
 	ui.clear_options()
 
 	for actor_id in state.turn_order_ids:
@@ -162,19 +180,19 @@ func _resolve_round() -> void:
 	if state.combat_over:
 		_show_combat_end()
 	else:
-		state.phase = "selecting_actions"
-		await get_tree().process_frame   # avoid infinite recursion
+		_advance_phase(BattlePhase.END_OF_ROUND)
 		_start_action_selection()
 
 
 func _on_flee_pressed() -> void:
-	if state.combat_over or state.phase == "resolving_round":
+	if state.combat_over or state.battle_phase.current_phase() == BattlePhaseMachine.RESOLVING_ACTIONS:
 		return
 	_resolve_flee()
 
 
 func _resolve_flee() -> void:
-	state.phase = "resolving_round"
+	if not _advance_phase(BattlePhaseMachine.RESOLVING_ACTIONS):
+		return
 	ui.clear_options()
 	ui.set_turn_text("Equipe tenta fugir...")
 
@@ -209,8 +227,7 @@ func _resolve_flee() -> void:
 	if state.combat_over:
 		_show_combat_end()
 	else:
-		state.phase = "selecting_actions"
-		await get_tree().process_frame
+		_advance_phase(BattlePhase.END_OF_ROUND)
 		_start_action_selection()
 
 

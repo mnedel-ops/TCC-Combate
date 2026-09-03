@@ -10,6 +10,28 @@ const PLAYER_SPECIES_ID := 101
 const ENEMY_SPECIES_ID := 102
 
 
+func test_battle_phase_machine_enforces_valid_transitions() -> void:
+	var machine := BattlePhaseMachine.new(BattlePhaseMachine.ENCOUNTER_START)
+	
+	assert_bool(machine.transition(BattlePhaseMachine.SELECTING_ACTIONS)).is_true()
+	assert_str(machine.current_phase()).is_equal(BattlePhaseMachine.SELECTING_ACTIONS)
+	assert_bool(machine.transition(BattlePhaseMachine.RESOLVING_ACTIONS)).is_true()
+	assert_bool(machine.transition(BattlePhaseMachine.END_OF_ROUND)).is_true()
+	assert_bool(machine.transition(BattlePhaseMachine.SELECTING_ACTIONS)).is_true()
+	assert_bool(machine.transition(BattlePhaseMachine.RESOLVING_ACTIONS)).is_true()
+	assert_bool(machine.transition(BattlePhaseMachine.COMBAT_OVER)).is_true()
+	assert_bool(machine.transition(BattlePhaseMachine.VICTORY)).is_true()
+	assert_bool(machine.is_terminal()).is_true()
+
+	var invalid_machine := BattlePhaseMachine.new(BattlePhaseMachine.SELECTING_ACTIONS)
+	assert_bool(invalid_machine.transition(BattlePhaseMachine.VICTORY)).is_false()
+	assert_str(invalid_machine.current_phase()).is_equal(BattlePhaseMachine.SELECTING_ACTIONS)
+
+	var terminal_machine := BattlePhaseMachine.new(BattlePhaseMachine.DEFEAT)
+	assert_bool(terminal_machine.is_terminal()).is_true()
+	assert_bool(terminal_machine.transition(BattlePhaseMachine.SELECTING_ACTIONS)).is_false()
+
+
 func test_roll_initiative_sorts_by_initiative_value() -> void:
 	var state := _build_state()
 	CombatRules.roll_initiative(state)
