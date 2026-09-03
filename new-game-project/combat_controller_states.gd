@@ -24,7 +24,6 @@ func _ready() -> void:
 	CombatRules.roll_initiative(state)
 	state.battle_phase = BattlePhaseMachine.new(BattlePhaseMachine.ENCOUNTER_START)
 	state.phase = state.battle_phase.current_phase()
-	_log_initiative_order()
 
 	_refresh_hp_display()
 	ui.log_message("Combate comecou!")
@@ -34,13 +33,6 @@ func _ready() -> void:
 func _name_of(id: int) -> String:
 	var c := state.get_combatant(id)
 	return database.get_by_id(c.species_id).creature_name
-
-
-func _log_initiative_order() -> void:
-	var text := ""
-	for id in state.turn_order_ids:
-		text += "%s (%d)  " % [_name_of(id), state.get_combatant(id).initiative]
-	ui.log_message("Ordem de iniciativa: " + text)
 
 
 func _refresh_hp_display() -> void:
