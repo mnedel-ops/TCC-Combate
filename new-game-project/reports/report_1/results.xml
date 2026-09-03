@@ -1,55 +1,57 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites id="2026-09-02" name="report_1" tests="25" failures="0" skipped="0" flaky="0" time="0.000">
-	<testsuite id="0" name="test_combat_rules" package="test/unit" timestamp="2026-09-02T14:53:09" hostname="localhost" tests="25" failures="0" errors="0" skipped="0" flaky="0" time="0.233">
-		<testcase name="test_roll_initiative_sorts_by_initiative_value" classname="test_combat_rules" time="0.007">
+<testsuites id="2026-09-03" name="report_1" tests="26" failures="0" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_combat_rules" package="test/unit" timestamp="2026-09-03T18:27:06" hostname="localhost" tests="26" failures="0" errors="0" skipped="0" flaky="0" time="0.723">
+		<testcase name="test_battle_phase_machine_enforces_valid_transitions" classname="test_combat_rules" time="0.015">
 		</testcase>
-		<testcase name="test_combatant_state_initializes_with_slot" classname="test_combat_rules" time="0.007">
+		<testcase name="test_roll_initiative_sorts_by_initiative_value" classname="test_combat_rules" time="0.023">
 		</testcase>
-		<testcase name="test_valid_attack_hits_and_damages_target" classname="test_combat_rules" time="0.007">
+		<testcase name="test_combatant_state_initializes_with_slot" classname="test_combat_rules" time="0.023">
 		</testcase>
-		<testcase name="test_attack_command_with_dead_actor_is_cancelled" classname="test_combat_rules" time="0.007">
+		<testcase name="test_valid_attack_hits_and_damages_target" classname="test_combat_rules" time="0.018">
 		</testcase>
-		<testcase name="test_attack_command_with_dead_target_is_cancelled" classname="test_combat_rules" time="0.007">
+		<testcase name="test_attack_command_with_dead_actor_is_cancelled" classname="test_combat_rules" time="0.018">
 		</testcase>
-		<testcase name="test_attack_rejects_ally_target_via_slots" classname="test_combat_rules" time="0.006">
+		<testcase name="test_attack_command_with_dead_target_is_cancelled" classname="test_combat_rules" time="0.015">
 		</testcase>
-		<testcase name="test_attack_without_valid_attack_index_is_cancelled" classname="test_combat_rules" time="0.006">
+		<testcase name="test_attack_rejects_ally_target_via_slots" classname="test_combat_rules" time="0.018">
 		</testcase>
-		<testcase name="test_capture_success_kills_and_frees_slot" classname="test_combat_rules" time="0.006">
+		<testcase name="test_attack_without_valid_attack_index_is_cancelled" classname="test_combat_rules" time="0.019">
 		</testcase>
-		<testcase name="test_item_heals_target" classname="test_combat_rules" time="0.006">
+		<testcase name="test_capture_success_kills_and_frees_slot" classname="test_combat_rules" time="0.018">
 		</testcase>
-		<testcase name="test_item_capped_at_max_hp" classname="test_combat_rules" time="0.007">
+		<testcase name="test_item_heals_target" classname="test_combat_rules" time="0.017">
 		</testcase>
-		<testcase name="test_check_combat_end_recognizes_all_enemies_dead" classname="test_combat_rules" time="0.007">
+		<testcase name="test_item_capped_at_max_hp" classname="test_combat_rules" time="0.016">
 		</testcase>
-		<testcase name="test_check_combat_end_recognizes_all_players_dead" classname="test_combat_rules" time="0.006">
+		<testcase name="test_check_combat_end_recognizes_all_enemies_dead" classname="test_combat_rules" time="0.017">
 		</testcase>
-		<testcase name="test_pick_random_alive_target_excludes_dead" classname="test_combat_rules" time="0.006">
+		<testcase name="test_check_combat_end_recognizes_all_players_dead" classname="test_combat_rules" time="0.016">
 		</testcase>
-		<testcase name="test_pick_random_attack_index_from_valid_attacks" classname="test_combat_rules" time="0.006">
+		<testcase name="test_pick_random_alive_target_excludes_dead" classname="test_combat_rules" time="0.016">
 		</testcase>
-		<testcase name="test_flee_chance_is_deterministic" classname="test_combat_rules" time="0.006">
+		<testcase name="test_pick_random_attack_index_from_valid_attacks" classname="test_combat_rules" time="0.017">
 		</testcase>
-		<testcase name="test_battlefield_slot_constants" classname="test_combat_rules" time="0.007">
+		<testcase name="test_flee_chance_is_deterministic" classname="test_combat_rules" time="0.017">
 		</testcase>
-		<testcase name="test_battlefield_slot_utilities" classname="test_combat_rules" time="0.006">
+		<testcase name="test_battlefield_slot_constants" classname="test_combat_rules" time="0.016">
 		</testcase>
-		<testcase name="test_battlefield_init" classname="test_combat_rules" time="0.006">
+		<testcase name="test_battlefield_slot_utilities" classname="test_combat_rules" time="0.015">
 		</testcase>
-		<testcase name="test_battlefield_assign_and_query" classname="test_combat_rules" time="0.006">
+		<testcase name="test_battlefield_init" classname="test_combat_rules" time="0.017">
 		</testcase>
-		<testcase name="test_battlefield_free_slot" classname="test_combat_rules" time="0.006">
+		<testcase name="test_battlefield_assign_and_query" classname="test_combat_rules" time="0.016">
 		</testcase>
-		<testcase name="test_battlefield_side_queries" classname="test_combat_rules" time="0.006">
+		<testcase name="test_battlefield_free_slot" classname="test_combat_rules" time="0.015">
 		</testcase>
-		<testcase name="test_state_factory_assigns_slots" classname="test_combat_rules" time="0.006">
+		<testcase name="test_battlefield_side_queries" classname="test_combat_rules" time="0.012">
 		</testcase>
-		<testcase name="test_combat_state_valid_targets_basic" classname="test_combat_rules" time="0.006">
+		<testcase name="test_state_factory_assigns_slots" classname="test_combat_rules" time="0.010">
 		</testcase>
-		<testcase name="test_combat_state_valid_targets_dead_excluded" classname="test_combat_rules" time="0.006">
+		<testcase name="test_combat_state_valid_targets_basic" classname="test_combat_rules" time="0.015">
 		</testcase>
-		<testcase name="test_combat_state_alive_opposing_combatants" classname="test_combat_rules" time="0.006">
+		<testcase name="test_combat_state_valid_targets_dead_excluded" classname="test_combat_rules" time="0.014">
+		</testcase>
+		<testcase name="test_combat_state_alive_opposing_combatants" classname="test_combat_rules" time="0.015">
 		</testcase>
 	</testsuite>
 </testsuites>

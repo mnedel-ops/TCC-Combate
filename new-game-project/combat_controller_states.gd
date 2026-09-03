@@ -13,7 +13,6 @@ var state: CombatState
 var _selection_order: Array[int] = []
 var _current_player_index := 0
 
-
 func _ready() -> void:
 	state = CombatStateFactory.build(database, player_species_ids, enemy_species_ids)
 
@@ -180,7 +179,7 @@ func _resolve_round() -> void:
 	if state.combat_over:
 		_show_combat_end()
 	else:
-		_advance_phase(BattlePhase.END_OF_ROUND)
+		_advance_phase(BattlePhaseMachine.END_OF_ROUND)
 		_start_action_selection()
 
 
@@ -227,7 +226,7 @@ func _resolve_flee() -> void:
 	if state.combat_over:
 		_show_combat_end()
 	else:
-		_advance_phase(BattlePhase.END_OF_ROUND)
+		_advance_phase(BattlePhaseMachine.END_OF_ROUND)
 		_start_action_selection()
 
 
