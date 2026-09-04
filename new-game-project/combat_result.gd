@@ -57,24 +57,24 @@ func _init(
 	reason = p_reason
 
 
-static func attack_hit(actor_id: int, target_id: int, attack_name: String, damage: int, critical: bool) -> CombatResult:
-	return CombatResult.new(Outcome.ATTACK_HIT, actor_id, target_id, attack_name, damage, 0, critical)
+static func attack_hit(p_actor_id: int, p_target_id: int, p_attack_name: String, p_damage: int, p_critical: bool) -> CombatResult:
+	return CombatResult.new(Outcome.ATTACK_HIT, p_actor_id, p_target_id, p_attack_name, p_damage, 0, p_critical)
 
 
-static func attack_miss(actor_id: int, target_id: int, attack_name: String) -> CombatResult:
-	return CombatResult.new(Outcome.ATTACK_MISS, actor_id, target_id, attack_name)
+static func attack_miss(p_actor_id: int, p_target_id: int, p_attack_name: String) -> CombatResult:
+	return CombatResult.new(Outcome.ATTACK_MISS, p_actor_id, p_target_id, p_attack_name)
 
 
-static func item_used(actor_id: int, target_id: int, amount: int) -> CombatResult:
-	return CombatResult.new(Outcome.ITEM_USED, actor_id, target_id, "", 0, amount)
+static func item_used(p_actor_id: int, p_target_id: int, p_amount: int) -> CombatResult:
+	return CombatResult.new(Outcome.ITEM_USED, p_actor_id, p_target_id, "", 0, p_amount)
 
 
-static func capture_success(actor_id: int, target_id: int) -> CombatResult:
-	return CombatResult.new(Outcome.CAPTURE_SUCCESS, actor_id, target_id)
+static func capture_success(p_actor_id: int, p_target_id: int) -> CombatResult:
+	return CombatResult.new(Outcome.CAPTURE_SUCCESS, p_actor_id, p_target_id)
 
 
-static func capture_fail(actor_id: int, target_id: int) -> CombatResult:
-	return CombatResult.new(Outcome.CAPTURE_FAIL, actor_id, target_id)
+static func capture_fail(p_actor_id: int, p_target_id: int) -> CombatResult:
+	return CombatResult.new(Outcome.CAPTURE_FAIL, p_actor_id, p_target_id)
 
 
 static func flee_success() -> CombatResult:
@@ -85,16 +85,16 @@ static func flee_fail() -> CombatResult:
 	return CombatResult.new(Outcome.FLEE_FAIL)
 
 
-static func invalid_target(actor_id: int, target_id: int, reason: String = "invalid_target") -> CombatResult:
-	return CombatResult.new(Outcome.INVALID_TARGET, actor_id, target_id, "", 0, 0, false, reason)
+static func invalid_target(p_actor_id: int, p_target_id: int, p_reason: String = "invalid_target") -> CombatResult:
+	return CombatResult.new(Outcome.INVALID_TARGET, p_actor_id, p_target_id, "", 0, 0, false, p_reason)
 
 
-static func already_dead(actor_id: int, target_id: int, reason: String = "target_dead") -> CombatResult:
-	return CombatResult.new(Outcome.ALREADY_DEAD, actor_id, target_id, "", 0, 0, false, reason)
+static func already_dead(p_actor_id: int, p_target_id: int, p_reason: String = "target_dead") -> CombatResult:
+	return CombatResult.new(Outcome.ALREADY_DEAD, p_actor_id, p_target_id, "", 0, 0, false, p_reason)
 
 
-static func invalid_action(actor_id: int, target_id: int, reason: String = "invalid_action") -> CombatResult:
-	return CombatResult.new(Outcome.INVALID_ACTION, actor_id, target_id, "", 0, 0, false, reason)
+static func invalid_action(p_actor_id: int, p_target_id: int, p_reason: String = "invalid_action") -> CombatResult:
+	return CombatResult.new(Outcome.INVALID_ACTION, p_actor_id, p_target_id, "", 0, 0, false, p_reason)
 
 
 ## True quando o resultado representa uma acao que de fato aconteceu -

@@ -1,9 +1,10 @@
 class_name CombatRules
 extends RefCounted
 
-## Pure rules engine operating on CombatState + ActionCommand + AlchemonDatabase.
-## Stateless, deterministic (except for randomness). Events use IDs; UI resolves names
-## via AlchemonDatabase at display time, never here.
+## Motor de regras puro. So calcula CombatResult a partir de
+## CombatState + ActionCommand + AlchemonDatabase - nunca muta combatentes.
+## Mutacao real vive em CombatResultApplier. UI resolve nomes via
+## AlchemonDatabase na hora de exibir, nunca aqui.
 
 const MISS_CHANCE := 1.0 / 6.0
 const FLEE_CHANCE := 5.0 / 6.0
@@ -22,10 +23,12 @@ static func roll_initiative(state: CombatState) -> void:
 	state.turn_order_ids = all_ids
 
 
-static func resolve_action(state: CombatState, command: ActionCommand, database: AlchemonDatabase) -> Dictionary:
+## Contrato publico unico de resolucao. Sempre retorna CombatResult -
+## nunca Dictionary, nunca null.
+static func resolve_action(state: CombatState, command: ActionCommand, database: AlchemonDatabase) -> CombatResult:
 	var actor := state.get_combatant(command.actor_id)
 	if actor == null or not actor.alive:
-		return {"kind": "cancelled", "reason": "actor_dead"}
+		return CombatResult.already_dead(command.actor_id, command.target_id, "actor_dead")
 
 	match command.kind:
 		"attack":
@@ -35,78 +38,64 @@ static func resolve_action(state: CombatState, command: ActionCommand, database:
 		"capture":
 			return _resolve_capture(state, command)
 		_:
-			return {"kind": "unknown_command"}
+			return CombatResult.invalid_action(actor.id, command.target_id, "unknown_command")
 
 
-static func _resolve_attack(state: CombatState, command: ActionCommand, database: AlchemonDatabase) -> Dictionary:
+static func _resolve_attack(state: CombatState, command: ActionCommand, database: AlchemonDatabase) -> CombatResult:
 	var actor := state.get_combatant(command.actor_id)
 	var target := state.get_combatant(command.target_id)
 	if target == null or not target.alive:
-		return {"kind": "cancelled", "reason": "target_dead", "actor_id": actor.id}
+		return CombatResult.already_dead(actor.id, command.target_id, "target_dead")
 
-	# Validate target is on opposing side via battlefield
+	# Valida alvo do lado oposto via battlefield/estado (nao muta nada).
 	if target.id not in state.get_valid_targets(actor.id):
-		return {"kind": "cancelled", "reason": "invalid_target", "actor_id": actor.id}
+		return CombatResult.invalid_target(actor.id, target.id, "invalid_target")
 
 	var template := database.get_by_id(actor.species_id)
-	var valid_index := command.attack_index >= 0 and command.attack_index < template.attacks.size()
+	var valid_index := template != null and command.attack_index >= 0 and command.attack_index < template.attacks.size()
 	if not valid_index:
-		return {"kind": "cancelled", "reason": "invalid_attack", "actor_id": actor.id}
+		return CombatResult.invalid_action(actor.id, target.id, "invalid_attack")
 
 	var attack: AttackData = template.attacks[command.attack_index]
 
 	if randf() < MISS_CHANCE:
-		return {"kind": "attack_miss", "actor_id": actor.id, "target_id": target.id, "attack_name": attack.attack_name}
+		return CombatResult.attack_miss(actor.id, target.id, attack.attack_name)
 
 	var is_critical := randi_range(1, CRIT_ROLL_MAX) == CRIT_ROLL_MAX
 	var damage := attack.damage
 	if is_critical:
 		damage = int(round(damage * CRIT_MULTIPLIER))
 
-	target.hp = max(target.hp - damage, 0)
-	if target.hp == 0:
-		target.alive = false
-		# Free the slot when combatant dies
-		state.battlefield.free_slot(target.slot)
-
-	return {
-		"kind": "attack_hit",
-		"actor_id": actor.id,
-		"target_id": target.id,
-		"damage": damage,
-		"critical": is_critical,
-		"attack_name": attack.attack_name,
-	}
+	return CombatResult.attack_hit(actor.id, target.id, attack.attack_name, damage, is_critical)
 
 
-static func _resolve_item(state: CombatState, command: ActionCommand) -> Dictionary:
+static func _resolve_item(state: CombatState, command: ActionCommand) -> CombatResult:
 	var actor := state.get_combatant(command.actor_id)
 	var target := state.get_combatant(command.target_id)
 	if target == null or not target.alive:
-		return {"kind": "cancelled", "reason": "target_dead", "actor_id": actor.id}
+		return CombatResult.already_dead(actor.id, command.target_id, "target_dead")
 
-	target.hp = min(target.hp + ITEM_HEAL_AMOUNT, target.max_hp)
-	return {"kind": "item_used", "actor_id": actor.id, "target_id": target.id, "amount": ITEM_HEAL_AMOUNT}
+	# Quantidade real que sera curada (clampada), calculada sem mutar target.
+	var healed: int = mini(ITEM_HEAL_AMOUNT, target.max_hp - target.hp)
+	return CombatResult.item_used(actor.id, target.id, healed)
 
 
-static func _resolve_capture(state: CombatState, command: ActionCommand) -> Dictionary:
+static func _resolve_capture(state: CombatState, command: ActionCommand) -> CombatResult:
 	var actor := state.get_combatant(command.actor_id)
 	var target := state.get_combatant(command.target_id)
 	if target == null or not target.alive:
-		return {"kind": "cancelled", "reason": "target_dead", "actor_id": actor.id}
+		return CombatResult.already_dead(actor.id, command.target_id, "target_dead")
 
 	if randf() < CAPTURE_CHANCE:
-		target.alive = false
-		target.hp = 0
-		# Free the slot when combatant is captured
-		state.battlefield.free_slot(target.slot)
-		return {"kind": "capture_success", "actor_id": actor.id, "target_id": target.id}
+		return CombatResult.capture_success(actor.id, target.id)
 
-	return {"kind": "capture_fail", "actor_id": actor.id, "target_id": target.id}
+	return CombatResult.capture_fail(actor.id, target.id)
 
 
-static func attempt_flee() -> bool:
-	return randf() < FLEE_CHANCE
+static func resolve_flee() -> CombatResult:
+	if randf() < FLEE_CHANCE:
+		return CombatResult.flee_success()
+	return CombatResult.flee_fail()
 
 
 static func check_combat_end(state: CombatState) -> void:
@@ -117,13 +106,15 @@ static func check_combat_end(state: CombatState) -> void:
 
 
 static func _mark_battle_outcome(state: CombatState, player_won: bool) -> void:
+	if state.combat_over:
+		return # idempotente - nao re-transiciona uma fase ja terminal
+
 	state.combat_over = true
 	state.player_won = player_won
 	if state.battle_phase == null:
 		state.battle_phase = BattlePhaseMachine.new(BattlePhaseMachine.COMBAT_OVER)
 
-	state.battle_phase.transition(BattlePhaseMachine.COMBAT_OVER)
-	state.battle_phase.transition(BattlePhaseMachine.VICTORY if player_won else BattlePhaseMachine.DEFEAT)
+	state.battle_phase.force_phase(BattlePhaseMachine.VICTORY if player_won else BattlePhaseMachine.DEFEAT)
 	state.phase = state.battle_phase.current_phase()
 
 

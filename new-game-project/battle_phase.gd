@@ -50,5 +50,14 @@ func transition(next_phase: String) -> bool:
 	return true
 
 
+## Forca a fase diretamente, ignorando validacao de transicao. Uso restrito:
+## so CombatRules._mark_battle_outcome() deve chamar isso. Vitoria/derrota
+## precisa ser sempre alcancavel quando a condicao bate, independente de
+## qual fase "normal" o combate estava - nao pode travar preso num edge
+## de FSM so porque o kill aconteceu num momento inesperado.
+func force_phase(next_phase: String) -> void:
+	_current_phase = next_phase
+
+
 func is_terminal() -> bool:
 	return is_terminal_phase(_current_phase)

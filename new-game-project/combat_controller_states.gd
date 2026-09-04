@@ -1,7 +1,9 @@
 extends Control
 
 ## Combat state machine controller. Orchestrates battle phases.
-## Rules are in CombatRules. UI is in Combat_UI_states.
+## Rules are in CombatRules (pure, returns CombatResult). Mutation lives in
+## CombatResultApplier. UI is in Combat_UI_states. Controller never touches
+## Dictionaries here - CombatResult is the one contract, end to end.
 
 @onready var ui: Combat_UI_states = $VBoxContainer
 
@@ -12,6 +14,7 @@ extends Control
 var state: CombatState
 var _selection_order: Array[int] = []
 var _current_player_index := 0
+
 
 func _ready() -> void:
 	state = CombatStateFactory.build(database, player_species_ids, enemy_species_ids)
@@ -24,6 +27,7 @@ func _ready() -> void:
 	CombatRules.roll_initiative(state)
 	state.battle_phase = BattlePhaseMachine.new(BattlePhaseMachine.ENCOUNTER_START)
 	state.phase = state.battle_phase.current_phase()
+	_log_initiative_order()
 
 	_refresh_hp_display()
 	ui.log_message("Combate comecou!")
@@ -33,6 +37,13 @@ func _ready() -> void:
 func _name_of(id: int) -> String:
 	var c := state.get_combatant(id)
 	return database.get_by_id(c.species_id).creature_name
+
+
+func _log_initiative_order() -> void:
+	var text := ""
+	for id in state.turn_order_ids:
+		text += "%s (%d)  " % [_name_of(id), state.get_combatant(id).initiative]
+	ui.log_message("Ordem de iniciativa: " + text)
 
 
 func _refresh_hp_display() -> void:
@@ -55,6 +66,17 @@ func _advance_phase(next_phase: String) -> bool:
 		return false
 	state.phase = state.battle_phase.current_phase()
 	return true
+
+
+## Contrato interno unico: resolve -> aplica -> loga -> atualiza HP.
+## Toda acao (jogador, inimigo, flee-retaliation) passa por aqui, entao
+## consistencia de estado nao depende de cada call site fazer a sequencia certa.
+func _execute_command(command: ActionCommand) -> CombatResult:
+	var result := CombatRules.resolve_action(state, command, database)
+	CombatResultApplier.apply(state, result)
+	_log_event(CombatEvent.from_result(result))
+	_refresh_hp_display()
+	return result
 
 
 func _start_action_selection() -> void:
@@ -160,10 +182,7 @@ func _resolve_round() -> void:
 			continue
 
 		ui.set_turn_text("Turno: %s" % _name_of(actor_id))
-		var event := CombatRules.resolve_action(state, command, database)
-		_log_event(event)
-		_refresh_hp_display()
-		CombatRules.check_combat_end(state)
+		_execute_command(command)
 
 		if not state.combat_over:
 			await get_tree().create_timer(0.5).timeout
@@ -187,7 +206,10 @@ func _resolve_flee() -> void:
 	ui.clear_options()
 	ui.set_turn_text("Equipe tenta fugir...")
 
-	if CombatRules.attempt_flee():
+	var flee_result := CombatRules.resolve_flee()
+	_log_event(CombatEvent.from_result(flee_result))
+
+	if flee_result.outcome == CombatResult.Outcome.FLEE_SUCCESS:
 		ui.log_message("Fugimos! Escapamos do combate.")
 		queue_free()
 		return
@@ -207,10 +229,7 @@ func _resolve_flee() -> void:
 
 		ui.set_turn_text("Turno: %s" % _name_of(enemy_id))
 		var command := ActionCommand.new(enemy_id, "attack", target_id, attack_index)
-		var event := CombatRules.resolve_action(state, command, database)
-		_log_event(event)
-		_refresh_hp_display()
-		CombatRules.check_combat_end(state)
+		_execute_command(command)
 		if state.combat_over:
 			break
 		await get_tree().create_timer(0.5).timeout
@@ -226,18 +245,26 @@ func _show_combat_end() -> void:
 	ui.show_combat_end(state.player_won)
 
 
-func _log_event(event: Dictionary) -> void:
-	match event.get("kind"):
-		"attack_miss":
+func _log_event(event: CombatEvent) -> void:
+	match event.kind:
+		CombatEvent.Kind.ATTACK_MISS:
 			ui.log_message("%s usa %s em %s... e erra!" % [_name_of(event.actor_id), event.attack_name, _name_of(event.target_id)])
-		"attack_hit":
+		CombatEvent.Kind.ATTACK_HIT:
 			var crit_text := " CRITICO!" if event.critical else ""
 			ui.log_message("%s usa %s em %s! %d de dano.%s" % [_name_of(event.actor_id), event.attack_name, _name_of(event.target_id), event.damage, crit_text])
-		"item_used":
+		CombatEvent.Kind.ITEM_USED:
 			ui.log_message("%s usa item em %s! Recupera %d HP." % [_name_of(event.actor_id), _name_of(event.target_id), event.amount])
-		"capture_success":
+		CombatEvent.Kind.CAPTURE_SUCCESS:
 			ui.log_message("%s captura %s! Retirado do combate." % [_name_of(event.actor_id), _name_of(event.target_id)])
-		"capture_fail":
+		CombatEvent.Kind.CAPTURE_FAIL:
 			ui.log_message("Tentativa de capturar %s falhou!" % _name_of(event.target_id))
-		"cancelled":
-			ui.log_message("Acao cancelada (%s)." % event.get("reason", "motivo desconhecido"))
+		CombatEvent.Kind.FLEE_SUCCESS:
+			ui.log_message("Fuga bem sucedida!")
+		CombatEvent.Kind.FLEE_FAIL:
+			ui.log_message("Fuga falhou!")
+		CombatEvent.Kind.INVALID_TARGET:
+			ui.log_message("Alvo invalido (%s)." % event.reason)
+		CombatEvent.Kind.ALREADY_DEAD:
+			ui.log_message("Alvo ja fora de combate (%s)." % event.reason)
+		CombatEvent.Kind.INVALID_ACTION:
+			ui.log_message("Acao invalida (%s)." % event.reason)
