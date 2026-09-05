@@ -17,7 +17,8 @@ const CRIT_MULTIPLIER := 1.5
 static func roll_initiative(state: CombatState) -> void:
 	var all_ids: Array[int] = state.player_ids + state.enemy_ids
 	for id in all_ids:
-		state.get_combatant(id).initiative = randi_range(1, 20)
+		var c := state.get_combatant(id)
+		c.initiative = AlchemonFormulas.compute_initiative(c.mechanical_speed, c.individual_value, c.level)
 
 	all_ids.sort_custom(func(a, b): return state.get_combatant(a).initiative > state.get_combatant(b).initiative)
 	state.turn_order_ids = all_ids

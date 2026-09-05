@@ -1,31 +1,41 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites id="2026-09-04" name="report_1" tests="14" failures="0" skipped="0" flaky="0" time="0.000">
-	<testsuite id="0" name="test_combat_contract" package="test/unit" timestamp="2026-09-04T14:36:17" hostname="localhost" tests="14" failures="0" errors="0" skipped="0" flaky="0" time="0.139">
-		<testcase name="test_alive_ids_excludes_dead_combatants" classname="test_combat_contract" time="0.006">
+<testsuites id="2026-09-04" name="report_1" tests="18" failures="0" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_alchemon_growth" package="test/unit" timestamp="2026-09-05T02:02:35" hostname="localhost" tests="4" failures="0" errors="0" skipped="0" flaky="0" time="0.055">
+		<testcase name="test_combatant_seeds_stats_from_template_base" classname="test_alchemon_growth" time="0.008">
+		</testcase>
+		<testcase name="test_level_up_increases_attack_within_configured_range" classname="test_alchemon_growth" time="0.009">
+		</testcase>
+		<testcase name="test_level_up_never_drops_stat_below_one" classname="test_alchemon_growth" time="0.009">
+		</testcase>
+		<testcase name="test_level_up_multiple_levels_at_once" classname="test_alchemon_growth" time="0.008">
+		</testcase>
+	</testsuite>
+	<testsuite id="1" name="test_combat_contract" package="test/unit" timestamp="2026-09-05T02:02:35" hostname="localhost" tests="14" failures="0" errors="0" skipped="0" flaky="0" time="0.154">
+		<testcase name="test_alive_ids_excludes_dead_combatants" classname="test_combat_contract" time="0.007">
 		</testcase>
 		<testcase name="test_valid_targets_only_include_opposing_alive_side" classname="test_combat_contract" time="0.007">
 		</testcase>
-		<testcase name="test_valid_targets_empty_when_actor_unknown" classname="test_combat_contract" time="0.006">
+		<testcase name="test_valid_targets_empty_when_actor_unknown" classname="test_combat_contract" time="0.007">
 		</testcase>
-		<testcase name="test_attack_resolves_to_hit_or_miss_with_complete_data" classname="test_combat_contract" time="0.007">
+		<testcase name="test_attack_resolves_to_hit_or_miss_with_complete_data" classname="test_combat_contract" time="0.008">
 		</testcase>
 		<testcase name="test_resolve_action_does_not_mutate_state" classname="test_combat_contract" time="0.007">
 		</testcase>
 		<testcase name="test_applier_applies_damage_and_frees_slot_on_death" classname="test_combat_contract" time="0.007">
 		</testcase>
-		<testcase name="test_applier_item_heal_clamps_to_max_hp" classname="test_combat_contract" time="0.006">
+		<testcase name="test_applier_item_heal_clamps_to_max_hp" classname="test_combat_contract" time="0.007">
 		</testcase>
 		<testcase name="test_attack_on_dead_target_returns_already_dead" classname="test_combat_contract" time="0.007">
 		</testcase>
 		<testcase name="test_attack_on_same_side_returns_invalid_target" classname="test_combat_contract" time="0.007">
 		</testcase>
-		<testcase name="test_attack_with_bad_attack_index_returns_invalid_action" classname="test_combat_contract" time="0.006">
+		<testcase name="test_attack_with_bad_attack_index_returns_invalid_action" classname="test_combat_contract" time="0.007">
 		</testcase>
 		<testcase name="test_dead_actor_cannot_act" classname="test_combat_contract" time="0.007">
 		</testcase>
-		<testcase name="test_combat_end_triggers_victory_when_all_enemies_dead" classname="test_combat_contract" time="0.006">
+		<testcase name="test_combat_end_triggers_victory_when_all_enemies_dead" classname="test_combat_contract" time="0.007">
 		</testcase>
-		<testcase name="test_combat_end_triggers_defeat_when_all_players_dead" classname="test_combat_contract" time="0.006">
+		<testcase name="test_combat_end_triggers_defeat_when_all_players_dead" classname="test_combat_contract" time="0.007">
 		</testcase>
 		<testcase name="test_capture_success_frees_slot_and_can_end_combat" classname="test_combat_contract" time="0.007">
 		</testcase>

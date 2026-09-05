@@ -17,6 +17,11 @@ extends Resource
 @export var combat_over: bool = false
 @export var player_won: bool = false
 
+## Temperatura da arena (GDD secao 8) - global, afeta as 4 criaturas em
+## campo, nao e um atributo por criatura. Guardada em Kelvin internamente,
+## nunca convertida automaticamente pra UI. Padrao: 25 C = 298.15 K.
+@export var temperature: float = 298.15
+
 var battlefield: Battlefield
 var battle_phase: BattlePhaseMachine
 
@@ -57,4 +62,3 @@ func get_valid_targets(actor_id: int) -> Array[int]:
 	if actor == null:
 		return []
 	return get_alive_opposing_combatants(actor.is_player)
-
