@@ -31,6 +31,10 @@ extends Resource
 ## sistema de Nature nem EV (nao fazem parte do jogo).
 @export var individual_value: int = 1
 
+## XP acumulado rumo ao proximo nivel. Zerado (com resto preservado) toda
+## vez que bate o limiar - ver AlchemonGrowth.XP_TO_LEVEL_UP.
+@export var experience: int = 0
+
 func _init(
 	p_id: int = -1,
 	p_species_id: int = -1,

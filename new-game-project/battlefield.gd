@@ -9,17 +9,19 @@ extends RefCounted
 ## retain their slot association but free the slot for reuse.
 
 ## slot -> combatant_id (or -1 if empty/freed)
-var slot_occupancy: Array[int] = [-1, -1, -1, -1]
+var slot_occupancy: Array[int] = []
 
 
 func _init() -> void:
-	# All slots start empty
-	slot_occupancy = [-1, -1, -1, -1]
+	# All slots start empty. Tamanho vem de BattlefieldSlot.SLOT_COUNT -
+	# unica fonte de verdade, nao um literal [-1,-1,-1,-1] escrito a mao.
+	slot_occupancy.resize(BattlefieldSlot.SLOT_COUNT)
+	slot_occupancy.fill(-1)
 
 
 ## Assigns combatant to slot. Must not re-assign already-occupied slot in init.
 func assign_combatant(combatant_id: int, slot: int) -> void:
-	if slot < 0 or slot >= 4:
+	if slot < 0 or slot >= BattlefieldSlot.SLOT_COUNT:
 		push_error("Invalid slot: %d" % slot)
 		return
 	if slot_occupancy[slot] != -1:
@@ -30,7 +32,7 @@ func assign_combatant(combatant_id: int, slot: int) -> void:
 
 ## Get occupant of slot. Returns -1 if empty/freed.
 func get_occupant(slot: int) -> int:
-	if slot < 0 or slot >= 4:
+	if slot < 0 or slot >= BattlefieldSlot.SLOT_COUNT:
 		return -1
 	return slot_occupancy[slot]
 
@@ -43,14 +45,14 @@ func get_combatant_slot(combatant_id: int) -> int:
 ## Free the slot (combatant died). Slot association remains for logic,
 ## but occupancy is cleared (-1).
 func free_slot(slot: int) -> void:
-	if slot >= 0 and slot < 4:
+	if slot >= 0 and slot < BattlefieldSlot.SLOT_COUNT:
 		slot_occupancy[slot] = -1
 
 
 ## Get all occupied slots.
 func get_occupied_slots() -> Array[int]:
 	var occupied: Array[int] = []
-	for slot in range(4):
+	for slot in range(BattlefieldSlot.SLOT_COUNT):
 		if slot_occupancy[slot] != -1:
 			occupied.append(slot)
 	return occupied
@@ -82,7 +84,7 @@ func get_opposing_combatants(is_player: bool) -> Array[int]:
 
 ## Check if slot is occupied.
 func is_occupied(slot: int) -> bool:
-	if slot < 0 or slot >= 4:
+	if slot < 0 or slot >= BattlefieldSlot.SLOT_COUNT:
 		return false
 	return slot_occupancy[slot] != -1
 

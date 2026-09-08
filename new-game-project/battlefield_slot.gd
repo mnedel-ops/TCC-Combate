@@ -10,6 +10,11 @@ const PLAYER_SLOT_2 := 1
 const ENEMY_SLOT_1 := 2
 const ENEMY_SLOT_2 := 3
 
+## Total de slots no battlefield. Unica fonte de verdade pro tamanho de
+## slot_occupancy e pros limites de indice em Battlefield - nada mais
+## deveria ter o literal 4 escrito a mao.
+const SLOT_COUNT := 4
+
 
 static func slot_name(slot: int) -> String:
 	match slot:

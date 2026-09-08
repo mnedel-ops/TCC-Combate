@@ -72,10 +72,17 @@ func _advance_phase(next_phase: String) -> bool:
 ## Toda acao (jogador, inimigo, flee-retaliation) passa por aqui, entao
 ## consistencia de estado nao depende de cada call site fazer a sequencia certa.
 func _execute_command(command: ActionCommand) -> CombatResult:
+	var actor := state.get_combatant(command.actor_id)
+	var level_before := actor.level if actor != null else -1
+
 	var result := CombatRules.resolve_action(state, command, database)
-	CombatResultApplier.apply(state, result)
+	CombatResultApplier.apply(state, result, database)
 	_log_event(CombatEvent.from_result(result))
 	_refresh_hp_display()
+
+	if actor != null and actor.level > level_before:
+		ui.log_message("%s subiu para o nivel %d!" % [_name_of(actor.id), actor.level])
+
 	return result
 
 
@@ -147,14 +154,25 @@ func _confirm_action(actor_id: int, kind: String, target_id: int, attack_index: 
 
 func _queue_enemy_commands() -> void:
 	for enemy_id in state.get_alive_ids(state.enemy_ids):
-		var target_id := CombatRules.pick_random_alive_target_id(state, state.player_ids)
-		if target_id == -1:
-			continue
-		var enemy := state.get_combatant(enemy_id)
-		var attack_index := CombatRules.pick_random_attack_index(database, enemy.species_id)
-		if attack_index == -1:
-			continue
-		state.pending_actions.append(ActionCommand.new(enemy_id, "attack", target_id, attack_index))
+		var command := _build_enemy_attack_command(enemy_id)
+		if command != null:
+			state.pending_actions.append(command)
+
+
+## Monta o comando de ataque de um inimigo: alvo e ataque escolhidos ao
+## acaso. Retorna null se nao houver alvo vivo ou ataque valido - quem
+## chama decide o que fazer (pular esse inimigo). Usado tanto na fila
+## normal de inimigos (_queue_enemy_commands) quanto na retaliacao apos
+## fuga falhada (_resolve_flee) - mesma decisao, dois call sites.
+func _build_enemy_attack_command(enemy_id: int) -> ActionCommand:
+	var target_id := CombatRules.pick_random_alive_target_id(state, state.player_ids)
+	if target_id == -1:
+		return null
+	var enemy := state.get_combatant(enemy_id)
+	var attack_index := CombatRules.pick_random_attack_index(database, enemy.species_id)
+	if attack_index == -1:
+		return null
+	return ActionCommand.new(enemy_id, "attack", target_id, attack_index)
 
 
 func _find_command_for(actor_id: int) -> ActionCommand:
@@ -219,16 +237,11 @@ func _resolve_flee() -> void:
 	for enemy_id in state.get_alive_ids(state.enemy_ids):
 		if state.combat_over:
 			break
-		var target_id := CombatRules.pick_random_alive_target_id(state, state.player_ids)
-		if target_id == -1:
-			continue
-		var enemy := state.get_combatant(enemy_id)
-		var attack_index := CombatRules.pick_random_attack_index(database, enemy.species_id)
-		if attack_index == -1:
+		var command := _build_enemy_attack_command(enemy_id)
+		if command == null:
 			continue
 
 		ui.set_turn_text("Turno: %s" % _name_of(enemy_id))
-		var command := ActionCommand.new(enemy_id, "attack", target_id, attack_index)
 		_execute_command(command)
 		if state.combat_over:
 			break

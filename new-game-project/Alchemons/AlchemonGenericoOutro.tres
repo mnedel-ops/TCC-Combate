@@ -10,6 +10,6 @@ script = ExtResource("1_bqul4")
 id = 1
 creature_name = "Outro"
 max_hp = 50
-hp = 50
 attacks = Array[ExtResource("1_l8r5n")]([ExtResource("2_n1kb7"), ExtResource("3_t2qme")])
+temperature = 250.0
 metadata/_custom_type_script = "uid://cxfaplp86c865"

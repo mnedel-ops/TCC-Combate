@@ -8,7 +8,7 @@ var template: AlchemonSheet
 
 
 func before_test() -> void:
-	template = AlchemonSheet.new("Hero", 30, true, 0)
+	template = AlchemonSheet.new("Hero", 30, 0)
 	template.base_attack = 10
 	template.base_defense = 8
 	template.base_mechanical_speed = 12
@@ -75,9 +75,9 @@ func test_initiative_formula_matches_spec() -> void:
 
 func test_roll_initiative_is_deterministic_from_speed_not_random() -> void:
 	var db := AlchemonDatabase.new()
-	var fast := AlchemonSheet.new("Fast", 30, true, 0)
+	var fast := AlchemonSheet.new("Fast", 30, 0)
 	fast.base_mechanical_speed = 50
-	var slow := AlchemonSheet.new("Slow", 20, false, 1)
+	var slow := AlchemonSheet.new("Slow", 20, 1)
 	slow.base_mechanical_speed = 5
 	db.alchemons = [fast, slow]
 
@@ -91,3 +91,118 @@ func test_combat_state_defaults_temperature_to_25_celsius_in_kelvin() -> void:
 	var state := CombatState.new()
 
 	assert_float(state.temperature).is_equal_approx(298.15, 0.01)
+
+
+# ---------------------------------------------------------------------------
+# XP e nivel (AlchemonGrowth.grant_experience)
+# ---------------------------------------------------------------------------
+
+func test_combatant_starts_at_level_1_with_zero_experience() -> void:
+	var db := AlchemonDatabase.new()
+	db.alchemons = [template]
+	var state := CombatStateFactory.build(db, [0], [])
+	var combatant := state.get_combatant(state.player_ids[0])
+
+	assert_int(combatant.level).is_equal(1)
+	assert_int(combatant.experience).is_equal(0)
+
+
+func test_grant_experience_below_threshold_does_not_level_up() -> void:
+	var combatant := CombatantState.new(0, 0, 30, true, 0)
+
+	AlchemonGrowth.grant_experience(combatant, template, 60)
+
+	assert_int(combatant.experience).is_equal(60)
+	assert_int(combatant.level).is_equal(1)
+
+
+func test_grant_experience_at_threshold_levels_up_and_resets_experience() -> void:
+	var combatant := CombatantState.new(0, 0, 30, true, 0)
+
+	AlchemonGrowth.grant_experience(combatant, template, AlchemonGrowth.XP_TO_LEVEL_UP)
+
+	assert_int(combatant.level).is_equal(2)
+	assert_int(combatant.experience).is_equal(0)
+
+
+func test_grant_experience_overflow_keeps_remainder_and_can_double_level() -> void:
+	var combatant := CombatantState.new(0, 0, 30, true, 0)
+
+	AlchemonGrowth.grant_experience(combatant, template, AlchemonGrowth.XP_TO_LEVEL_UP + 30)
+
+	assert_int(combatant.level).is_equal(2)
+	assert_int(combatant.experience).is_equal(30)
+
+	AlchemonGrowth.grant_experience(combatant, template, AlchemonGrowth.XP_TO_LEVEL_UP * 2 - 30)
+
+	assert_int(combatant.level).is_equal(4)
+	assert_int(combatant.experience).is_equal(0)
+
+
+func test_defeating_target_grants_its_xp_reward_to_actor() -> void:
+	var db := _build_database_with_reward(60)
+	var state := CombatStateFactory.build(db, [0], [1])
+	var actor_id := state.player_ids[0]
+	var target_id := state.enemy_ids[0]
+
+	var result := CombatResult.attack_hit(actor_id, target_id, "Tackle", 999, false)
+	CombatResultApplier.apply(state, result, db)
+
+	var actor := state.get_combatant(actor_id)
+	assert_int(actor.experience).is_equal(60)
+	assert_int(actor.level).is_equal(1)
+
+
+func test_defeating_target_can_trigger_level_up_through_the_applier() -> void:
+	var db := _build_database_with_reward(AlchemonGrowth.XP_TO_LEVEL_UP + 50)
+	var state := CombatStateFactory.build(db, [0], [1])
+	var actor_id := state.player_ids[0]
+	var target_id := state.enemy_ids[0]
+
+	var result := CombatResult.attack_hit(actor_id, target_id, "Tackle", 999, false)
+	CombatResultApplier.apply(state, result, db)
+
+	var actor := state.get_combatant(actor_id)
+	assert_int(actor.level).is_equal(2)
+	assert_int(actor.experience).is_equal(50)
+
+
+func test_capture_also_grants_xp() -> void:
+	var db := _build_database_with_reward(AlchemonGrowth.XP_TO_LEVEL_UP)
+	var state := CombatStateFactory.build(db, [0], [1])
+	var actor_id := state.player_ids[0]
+	var target_id := state.enemy_ids[0]
+
+	var result := CombatResult.capture_success(actor_id, target_id)
+	CombatResultApplier.apply(state, result, db)
+
+	assert_int(state.get_combatant(actor_id).level).is_equal(2)
+
+
+func test_miss_grants_no_xp() -> void:
+	var db := _build_database_with_reward(999)
+	var state := CombatStateFactory.build(db, [0], [1])
+	var actor_id := state.player_ids[0]
+	var target_id := state.enemy_ids[0]
+
+	var result := CombatResult.attack_miss(actor_id, target_id, "Tackle")
+	CombatResultApplier.apply(state, result, db)
+
+	assert_int(state.get_combatant(actor_id).experience).is_equal(0)
+
+
+func _build_database_with_reward(reward: int) -> AlchemonDatabase:
+	var tackle := AttackData.new()
+	tackle.attack_name = "Tackle"
+	tackle.damage = 20
+
+	var hero := AlchemonSheet.new("Hero", 30, 0)
+	hero.attacks = [tackle]
+
+	var slime := AlchemonSheet.new("Slime", 20, 1)
+	slime.attacks = [tackle]
+	slime.xp_reward = reward
+
+	var db := AlchemonDatabase.new()
+	db.alchemons = [hero, slime]
+	return db

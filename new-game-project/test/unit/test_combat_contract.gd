@@ -16,10 +16,10 @@ func _build_database() -> AlchemonDatabase:
 	tackle.attack_name = "Tackle"
 	tackle.damage = 20
 
-	var hero := AlchemonSheet.new("Hero", 30, true, 0)
+	var hero := AlchemonSheet.new("Hero", 30, 0)
 	hero.attacks = [tackle]
 
-	var slime := AlchemonSheet.new("Slime", 20, false, 1)
+	var slime := AlchemonSheet.new("Slime", 20, 1)
 	slime.attacks = [tackle]
 
 	var db := AlchemonDatabase.new()
@@ -94,7 +94,7 @@ func test_applier_applies_damage_and_frees_slot_on_death() -> void:
 	var slot := target.slot
 	var result := CombatResult.attack_hit(_player_id(), _enemy_id(), "Tackle", 20, false)
 
-	CombatResultApplier.apply(state, result)
+	CombatResultApplier.apply(state, result, database)
 
 	assert_int(target.hp).is_equal(0)
 	assert_bool(target.alive).is_false()
@@ -106,7 +106,7 @@ func test_applier_item_heal_clamps_to_max_hp() -> void:
 	target.hp = target.max_hp - 2
 	var result := CombatResult.item_used(_player_id(), _player_id(), 6)
 
-	CombatResultApplier.apply(state, result)
+	CombatResultApplier.apply(state, result, database)
 
 	assert_int(target.hp).is_equal(target.max_hp)
 
@@ -157,7 +157,7 @@ func test_dead_actor_cannot_act() -> void:
 func test_combat_end_triggers_victory_when_all_enemies_dead() -> void:
 	var result := CombatResult.attack_hit(_player_id(), _enemy_id(), "Tackle", 999, false)
 
-	CombatResultApplier.apply(state, result)
+	CombatResultApplier.apply(state, result, database)
 
 	assert_bool(state.combat_over).is_true()
 	assert_bool(state.player_won).is_true()
@@ -167,7 +167,7 @@ func test_combat_end_triggers_victory_when_all_enemies_dead() -> void:
 func test_combat_end_triggers_defeat_when_all_players_dead() -> void:
 	var result := CombatResult.attack_hit(_enemy_id(), _player_id(), "Tackle", 999, false)
 
-	CombatResultApplier.apply(state, result)
+	CombatResultApplier.apply(state, result, database)
 
 	assert_bool(state.combat_over).is_true()
 	assert_bool(state.player_won).is_false()
@@ -178,7 +178,7 @@ func test_capture_success_frees_slot_and_can_end_combat() -> void:
 	var slot := state.get_combatant(_enemy_id()).slot
 	var result := CombatResult.capture_success(_player_id(), _enemy_id())
 
-	CombatResultApplier.apply(state, result)
+	CombatResultApplier.apply(state, result, database)
 
 	assert_bool(state.get_combatant(_enemy_id()).alive).is_false()
 	assert_int(state.battlefield.get_occupant(slot)).is_equal(-1)
