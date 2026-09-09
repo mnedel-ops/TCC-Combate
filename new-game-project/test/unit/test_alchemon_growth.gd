@@ -73,6 +73,39 @@ func test_initiative_formula_matches_spec() -> void:
 	assert_int(AlchemonFormulas.compute_initiative(12, 1, 5)).is_equal(6)
 
 
+func test_damage_formula_matches_gdd() -> void:
+	# (((2*10/5+2) * 40 * (50/50)) / 50 + 2) * 1.0
+	# = ((6 * 40 * 1) / 50 + 2) = (240/50 + 2) = (4.8 + 2) = 6.8 -> floor 6
+	assert_int(AlchemonFormulas.compute_damage(10, 40, 50, 50)).is_equal(6)
+
+
+func test_damage_formula_never_divides_by_zero_defense() -> void:
+	# defense=0 deve se comportar como defense=1, nao travar/crashar
+	var with_zero := AlchemonFormulas.compute_damage(10, 40, 50, 0)
+	var with_one := AlchemonFormulas.compute_damage(10, 40, 50, 1)
+	assert_int(with_zero).is_equal(with_one)
+
+
+func test_damage_formula_applies_effectiveness_multiplier() -> void:
+	# scaled = (2*10/5+2) * 40 * (50/50) = 240; pre-floor = 240/50 + 2 = 6.8
+	# effectiveness multiplies BEFORE the floor (GDD: "(...) x Efetividade",
+	# floored as a whole) - floor(6.8*2)=13, NOT floor(6.8)*2=12. Doubling
+	# effectiveness doesn't mean doubling the already-floored result.
+	var neutral := AlchemonFormulas.compute_damage(10, 40, 50, 50, 1.0)
+	var doubled := AlchemonFormulas.compute_damage(10, 40, 50, 50, 2.0)
+	assert_int(neutral).is_equal(6)
+	assert_int(doubled).is_equal(13)
+
+
+func test_temperature_delta_formula_matches_gdd() -> void:
+	# (10/10+1) * (40/10) * (50/100) = 2 * 4 * 0.5 = 4
+	assert_int(AlchemonFormulas.compute_temperature_delta(10, 40, 50)).is_equal(4)
+
+
+func test_crit_chance_is_flat_twelve_point_five_percent() -> void:
+	assert_float(CombatRules.CRIT_CHANCE).is_equal_approx(0.125, 0.0001)
+
+
 func test_roll_initiative_is_deterministic_from_speed_not_random() -> void:
 	var db := AlchemonDatabase.new()
 	var fast := AlchemonSheet.new("Fast", 30, 0)
@@ -194,7 +227,7 @@ func test_miss_grants_no_xp() -> void:
 func _build_database_with_reward(reward: int) -> AlchemonDatabase:
 	var tackle := AttackData.new()
 	tackle.attack_name = "Tackle"
-	tackle.damage = 20
+	tackle.power = 20
 
 	var hero := AlchemonSheet.new("Hero", 30, 0)
 	hero.attacks = [tackle]

@@ -265,6 +265,12 @@ func _log_event(event: CombatEvent) -> void:
 		CombatEvent.Kind.ATTACK_HIT:
 			var crit_text := " CRITICO!" if event.critical else ""
 			ui.log_message("%s usa %s em %s! %d de dano.%s" % [_name_of(event.actor_id), event.attack_name, _name_of(event.target_id), event.damage, crit_text])
+			if event.effectiveness > 1.0:
+				ui.log_message("E super efetivo!")
+			elif event.effectiveness < 1.0:
+				ui.log_message("Nao e muito efetivo...")
+			if event.temperature_delta != 0:
+				ui.log_message("A arena esquenta +%d K (agora %.1f K)." % [event.temperature_delta, state.temperature])
 		CombatEvent.Kind.ITEM_USED:
 			ui.log_message("%s usa item em %s! Recupera %d HP." % [_name_of(event.actor_id), _name_of(event.target_id), event.amount])
 		CombatEvent.Kind.CAPTURE_SUCCESS:

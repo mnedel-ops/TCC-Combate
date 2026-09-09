@@ -39,6 +39,8 @@ var damage: int
 var amount: int
 var critical: bool
 var reason: String
+var temperature_delta: int
+var effectiveness: float
 
 
 func _init(
@@ -49,7 +51,9 @@ func _init(
 	p_damage: int = 0,
 	p_amount: int = 0,
 	p_critical: bool = false,
-	p_reason: String = ""
+	p_reason: String = "",
+	p_temperature_delta: int = 0,
+	p_effectiveness: float = 1.0
 ) -> void:
 	kind = p_kind
 	actor_id = p_actor_id
@@ -59,6 +63,8 @@ func _init(
 	amount = p_amount
 	critical = p_critical
 	reason = p_reason
+	temperature_delta = p_temperature_delta
+	effectiveness = p_effectiveness
 
 
 ## Fabrica unica pra virar evento de UI a partir de um CombatResult.
@@ -71,5 +77,7 @@ static func from_result(result: CombatResult) -> CombatEvent:
 		result.damage,
 		result.amount,
 		result.critical,
-		result.reason
+		result.reason,
+		result.temperature_delta,
+		result.effectiveness
 	)

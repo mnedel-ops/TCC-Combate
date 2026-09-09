@@ -10,7 +10,7 @@ const MISS_CHANCE := 1.0 / 6.0
 const FLEE_CHANCE := 5.0 / 6.0
 const CAPTURE_CHANCE := 2.0 / 6.0
 const ITEM_HEAL_AMOUNT := 6
-const CRIT_ROLL_MAX := 20
+const CRIT_CHANCE := 0.125
 const CRIT_MULTIPLIER := 1.5
 
 
@@ -62,12 +62,24 @@ static func _resolve_attack(state: CombatState, command: ActionCommand, database
 	if randf() < MISS_CHANCE:
 		return CombatResult.attack_miss(actor.id, target.id, attack.attack_name)
 
-	var is_critical := randi_range(1, CRIT_ROLL_MAX) == CRIT_ROLL_MAX
-	var damage := attack.damage
+	# Efetividade: tipo do GOLPE contra tipo da criatura ALVO (sem STAB -
+	# o tipo de quem ataca nao entra aqui, GDD secao 10.1). Fallback neutro
+	# se por algum motivo a especie do alvo nao for encontrada.
+	var target_template := database.get_by_id(target.species_id)
+	var effectiveness := 1.0
+	if target_template != null:
+		effectiveness = AlchemonType.effectiveness(attack.element_type, target_template.element_type)
+
+	var is_critical := randf() < CRIT_CHANCE
+	var damage := AlchemonFormulas.compute_damage(actor.level, attack.power, actor.attack, target.defense, effectiveness)
 	if is_critical:
 		damage = int(round(damage * CRIT_MULTIPLIER))
 
-	return CombatResult.attack_hit(actor.id, target.id, attack.attack_name, damage, is_critical)
+	# So calculado no golpe que acerta - um golpe que erra o alvo nao
+	# gera a mesma variacao de temperatura na arena.
+	var temperature_delta := AlchemonFormulas.compute_temperature_delta(actor.level, attack.power, actor.attack)
+
+	return CombatResult.attack_hit(actor.id, target.id, attack.attack_name, damage, is_critical, temperature_delta, effectiveness)
 
 
 static func _resolve_item(state: CombatState, command: ActionCommand) -> CombatResult:

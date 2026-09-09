@@ -12,10 +12,13 @@ extends RefCounted
 ## - Victory Check: roda CombatRules.check_combat_end() apos toda aplicacao.
 ## - Leveling: quem derruba ou captura um alvo ganha a XP daquela especie
 ##   (AlchemonSheet.xp_reward), podendo disparar level up (AlchemonGrowth).
+## - Temperatura: todo golpe que acerta aquece a arena compartilhada
+##   (CombatState.temperature) pelo CombatResult.temperature_delta.
 
 static func apply(state: CombatState, result: CombatResult, database: AlchemonDatabase) -> void:
 	match result.outcome:
 		CombatResult.Outcome.ATTACK_HIT:
+			state.temperature += result.temperature_delta
 			var died := _apply_damage(state, result.target_id, result.damage)
 			if died:
 				_grant_xp(state, database, result.actor_id, result.target_id)

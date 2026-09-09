@@ -11,6 +11,14 @@ extends Resource
 @export var max_hp: int = 30
 @export var attacks: Array[AttackData] = []   # ate 4 ataques
 
+## Categoria elemental da criatura (GDD secao 6). Identidade da especie -
+## NAO e o que decide efetividade de dano sozinho (isso e AttackData.element_type
+## do golpe usado contra este campo). Sem STAB no jogo, entao este campo
+## hoje so serve pra identidade/flavor - fica pronto pro dia que STAB ou
+## qualquer mecanica baseada no tipo da criatura (ex: Composto/Mistura,
+## secao 9) precisar dele.
+@export var element_type: AlchemonType.Type = AlchemonType.Type.METAL
+
 ## --- Atributos de combate (GDD secao 7) ---
 ## Vida (HP) -> Massa atomica: ja coberta por max_hp acima.
 ## Ataque -> Eletronegatividade | Defesa -> Energia de ionizacao

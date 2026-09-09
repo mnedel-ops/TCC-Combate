@@ -14,13 +14,15 @@ func before_test() -> void:
 func _build_database() -> AlchemonDatabase:
 	var tackle := AttackData.new()
 	tackle.attack_name = "Tackle"
-	tackle.damage = 20
+	tackle.power = 20
+	tackle.element_type = AlchemonType.Type.METAL
 
 	var hero := AlchemonSheet.new("Hero", 30, 0)
 	hero.attacks = [tackle]
 
 	var slime := AlchemonSheet.new("Slime", 20, 1)
 	slime.attacks = [tackle]
+	slime.element_type = AlchemonType.Type.METALOIDE  # Metal supera Metaloide -> super efetivo
 
 	var db := AlchemonDatabase.new()
 	db.alchemons = [hero, slime]
@@ -75,6 +77,32 @@ func test_attack_resolves_to_hit_or_miss_with_complete_data() -> void:
 	assert_int(result.actor_id).is_equal(_player_id())
 	assert_int(result.target_id).is_equal(_enemy_id())
 	assert_str(result.attack_name).is_equal("Tackle")
+
+
+func test_attack_hit_damage_and_temperature_match_formulas_when_not_critical() -> void:
+	var actor := state.get_combatant(_player_id())
+	var target := state.get_combatant(_enemy_id())
+	var attack: AttackData = database.get_by_id(actor.species_id).attacks[0]
+	var command := ActionCommand.new(_player_id(), "attack", _enemy_id(), 0)
+
+	var found := false
+	for i in 200:
+		seed(i)
+		target.hp = target.max_hp
+		target.alive = true
+
+		var result := CombatRules.resolve_action(state, command, database)
+		if result.outcome == CombatResult.Outcome.ATTACK_HIT and not result.critical:
+			var expected_effectiveness := AlchemonType.effectiveness(attack.element_type, database.get_by_id(target.species_id).element_type)
+			var expected_damage := AlchemonFormulas.compute_damage(actor.level, attack.power, actor.attack, target.defense, expected_effectiveness)
+			var expected_delta := AlchemonFormulas.compute_temperature_delta(actor.level, attack.power, actor.attack)
+			assert_float(result.effectiveness).is_equal_approx(1.5, 0.001)
+			assert_int(result.damage).is_equal(expected_damage)
+			assert_int(result.temperature_delta).is_equal(expected_delta)
+			found = true
+			break
+
+	assert_bool(found).is_true()
 
 
 func test_resolve_action_does_not_mutate_state() -> void:
