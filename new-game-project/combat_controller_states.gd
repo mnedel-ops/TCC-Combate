@@ -1,9 +1,7 @@
 extends Control
 
 ## Combat state machine controller. Orchestrates battle phases.
-## Rules are in CombatRules (pure, returns CombatResult). Mutation lives in
-## CombatResultApplier. UI is in Combat_UI_states. Controller never touches
-## Dictionaries here - CombatResult is the one contract, end to end.
+## Rules are in CombatRules. UI is in Combat_UI_states.
 
 @onready var ui: Combat_UI_states = $VBoxContainer
 
@@ -25,8 +23,7 @@ func _ready() -> void:
 		return
 
 	CombatRules.roll_initiative(state)
-	state.battle_phase = BattlePhaseMachine.new(BattlePhaseMachine.ENCOUNTER_START)
-	state.phase = state.battle_phase.current_phase()
+	state.phase = BattlePhaseRules.ENCOUNTER_START
 	_log_initiative_order()
 
 	_refresh_hp_display()
@@ -61,72 +58,78 @@ func _refresh_hp_display() -> void:
 
 
 func _advance_phase(next_phase: String) -> bool:
-	if not state.battle_phase.transition(next_phase):
-		push_error("Invalid battle transition: %s -> %s" % [state.battle_phase.current_phase(), next_phase])
+	if not BattlePhaseRules.is_valid_transition(state.phase, next_phase):
+		push_error("Invalid battle transition: %s -> %s" % [state.phase, next_phase])
 		return false
-	state.phase = state.battle_phase.current_phase()
+	state.phase = next_phase
 	return true
 
 
-## Contrato interno unico: resolve -> aplica -> loga -> atualiza HP.
-## Toda acao (jogador, inimigo, flee-retaliation) passa por aqui, entao
-## consistencia de estado nao depende de cada call site fazer a sequencia certa.
-func _execute_command(command: ActionCommand) -> CombatResult:
-	var actor := state.get_combatant(command.actor_id)
-	var level_before := actor.level if actor != null else -1
-
-	var result := CombatRules.resolve_action(state, command, database)
-	CombatResultApplier.apply(state, result, database)
-	_log_event(CombatEvent.from_result(result))
-	_refresh_hp_display()
-
-	if actor != null and actor.level > level_before:
-		ui.log_message("%s subiu para o nivel %d!" % [_name_of(actor.id), actor.level])
-
-	return result
-
-
+## Opens the SELECTING_ACTIONS window. Both living players AND enemy AI
+## choose commands inside this same window - AI commands are queued up
+## front so resolution never depends on player pick order. Round only
+## advances to RESOLVING_ACTIONS once CombatRules.has_all_commands is true.
 func _start_action_selection() -> void:
 	if state.combat_over:
 		return
-	if state.battle_phase.current_phase() == BattlePhaseMachine.ENCOUNTER_START:
-		_advance_phase(BattlePhaseMachine.SELECTING_ACTIONS)
-	elif state.battle_phase.current_phase() == BattlePhaseMachine.END_OF_ROUND:
-		_advance_phase(BattlePhaseMachine.SELECTING_ACTIONS)
+	if state.phase == BattlePhaseRules.ENCOUNTER_START:
+		_advance_phase(BattlePhaseRules.SELECTING_ACTIONS)
+	elif state.phase == BattlePhaseRules.END_OF_ROUND:
+		_advance_phase(BattlePhaseRules.SELECTING_ACTIONS)
 
 	state.pending_actions.clear()
+	_queue_enemy_commands()
+
 	_selection_order = state.get_alive_ids(state.player_ids)
 	_current_player_index = 0
 	_prompt_action_for_current()
 
 
+## Appends a Back button to any options list. Every combat menu gets one,
+## including the top-level action menu (where Back just re-shows itself -
+## there's nothing earlier to return to within a locked-in turn).
+func _with_back(options: Array, back_callback: Callable) -> Array:
+	options.append({"text": "Voltar", "callback": back_callback})
+	return options
+
+
 func _prompt_action_for_current() -> void:
 	if _current_player_index >= _selection_order.size():
-		_queue_enemy_commands()
-		_resolve_round()
+		_try_resolve_round()
 		return
 
 	var actor_id := _selection_order[_current_player_index]
-	var actor := state.get_combatant(actor_id)
-	var template := database.get_by_id(actor.species_id)
-
 	ui.set_turn_text("Acao de %s:" % _name_of(actor_id))
 
 	var options: Array = [
-		{"text": "Item", "callback": func(): _begin_target_selection(actor_id, "item", -1)},
-		{"text": "Capturar", "callback": func(): _begin_target_selection(actor_id, "capture", -1)},
+		{"text": "Ataque", "callback": func(): _show_attack_menu(actor_id)},
+		{"text": "Item", "callback": func(): _begin_target_selection(actor_id, "item", -1, func(): _prompt_action_for_current())},
+		{"text": "Capturar", "callback": func(): _begin_target_selection(actor_id, "capture", -1, func(): _prompt_action_for_current())},
 		{"text": "Fugir", "callback": _on_flee_pressed},
 	]
+	ui.show_options(_with_back(options, func(): _prompt_action_for_current()))
+
+
+## Attack submenu. Names always shown as-is - CombatRules silently swaps
+## the resolved effect to a free Slap if the actor is at 0 valence
+## electrons, but the UI never hides or relabels the real attacks.
+func _show_attack_menu(actor_id: int) -> void:
+	var actor := state.get_combatant(actor_id)
+	var template := database.get_by_id(actor.species_id)
+
+	ui.set_turn_text("Ataque de %s:" % _name_of(actor_id))
+
+	var options: Array = []
 	for i in template.attacks.size():
 		var attack_index := i
 		options.append({
 			"text": template.attacks[i].attack_name,
-			"callback": func(): _begin_target_selection(actor_id, "attack", attack_index),
+			"callback": func(): _begin_target_selection(actor_id, "attack", attack_index, func(): _show_attack_menu(actor_id)),
 		})
-	ui.show_options(options)
+	ui.show_options(_with_back(options, func(): _prompt_action_for_current()))
 
 
-func _begin_target_selection(actor_id: int, kind: String, attack_index: int) -> void:
+func _begin_target_selection(actor_id: int, kind: String, attack_index: int, back_callback: Callable) -> void:
 	var candidate_ids: Array[int] = []
 	match kind:
 		"attack", "capture":
@@ -143,7 +146,7 @@ func _begin_target_selection(actor_id: int, kind: String, attack_index: int) -> 
 			"text": "%s (%d/%d HP)" % [_name_of(target_id), c.hp, c.max_hp],
 			"callback": func(): _confirm_action(actor_id, kind, target_id, attack_index),
 		})
-	ui.show_options(options)
+	ui.show_options(_with_back(options, back_callback))
 
 
 func _confirm_action(actor_id: int, kind: String, target_id: int, attack_index: int) -> void:
@@ -154,36 +157,27 @@ func _confirm_action(actor_id: int, kind: String, target_id: int, attack_index: 
 
 func _queue_enemy_commands() -> void:
 	for enemy_id in state.get_alive_ids(state.enemy_ids):
-		var command := _build_enemy_attack_command(enemy_id)
-		if command != null:
-			state.pending_actions.append(command)
+		var target_id := CombatRules.pick_random_alive_target_id(state, state.player_ids)
+		if target_id == -1:
+			continue
+		var enemy := state.get_combatant(enemy_id)
+		var attack_index := CombatRules.pick_random_attack_index(database, enemy.species_id)
+		if attack_index == -1:
+			continue
+		state.pending_actions.append(ActionCommand.new(enemy_id, "attack", target_id, attack_index))
 
 
-## Monta o comando de ataque de um inimigo: alvo e ataque escolhidos ao
-## acaso. Retorna null se nao houver alvo vivo ou ataque valido - quem
-## chama decide o que fazer (pular esse inimigo). Usado tanto na fila
-## normal de inimigos (_queue_enemy_commands) quanto na retaliacao apos
-## fuga falhada (_resolve_flee) - mesma decisao, dois call sites.
-func _build_enemy_attack_command(enemy_id: int) -> ActionCommand:
-	var target_id := CombatRules.pick_random_alive_target_id(state, state.player_ids)
-	if target_id == -1:
-		return null
-	var enemy := state.get_combatant(enemy_id)
-	var attack_index := CombatRules.pick_random_attack_index(database, enemy.species_id)
-	if attack_index == -1:
-		return null
-	return ActionCommand.new(enemy_id, "attack", target_id, attack_index)
-
-
-func _find_command_for(actor_id: int) -> ActionCommand:
-	for command in state.pending_actions:
-		if command.actor_id == actor_id:
-			return command
-	return null
+## Round can only leave SELECTING_ACTIONS once every alive actor (players
+## AND AI) has a queued command - see CombatRules.has_all_commands.
+func _try_resolve_round() -> void:
+	if not CombatRules.has_all_commands(state):
+		push_error("Round tentando resolver com comandos faltando.")
+		return
+	_resolve_round()
 
 
 func _resolve_round() -> void:
-	if not _advance_phase(BattlePhaseMachine.RESOLVING_ACTIONS):
+	if not _advance_phase(BattlePhaseRules.RESOLVING_ACTIONS):
 		return
 	ui.clear_options()
 
@@ -195,12 +189,15 @@ func _resolve_round() -> void:
 		if not actor.alive:
 			continue
 
-		var command := _find_command_for(actor_id)
+		var command := CombatRules.find_command_for(state, actor_id)
 		if command == null:
 			continue
 
 		ui.set_turn_text("Turno: %s" % _name_of(actor_id))
-		_execute_command(command)
+		var event := CombatRules.resolve_action(state, command, database)
+		_log_event(event)
+		_refresh_hp_display()
+		CombatRules.check_combat_end(state)
 
 		if not state.combat_over:
 			await get_tree().create_timer(0.5).timeout
@@ -208,26 +205,23 @@ func _resolve_round() -> void:
 	if state.combat_over:
 		_show_combat_end()
 	else:
-		_advance_phase(BattlePhaseMachine.END_OF_ROUND)
+		_advance_phase(BattlePhaseRules.END_OF_ROUND)
 		_start_action_selection()
 
 
 func _on_flee_pressed() -> void:
-	if state.combat_over or state.battle_phase.current_phase() == BattlePhaseMachine.RESOLVING_ACTIONS:
+	if state.combat_over or state.phase == BattlePhaseRules.RESOLVING_ACTIONS:
 		return
 	_resolve_flee()
 
 
 func _resolve_flee() -> void:
-	if not _advance_phase(BattlePhaseMachine.RESOLVING_ACTIONS):
+	if not _advance_phase(BattlePhaseRules.RESOLVING_ACTIONS):
 		return
 	ui.clear_options()
 	ui.set_turn_text("Equipe tenta fugir...")
 
-	var flee_result := CombatRules.resolve_flee()
-	_log_event(CombatEvent.from_result(flee_result))
-
-	if flee_result.outcome == CombatResult.Outcome.FLEE_SUCCESS:
+	if CombatRules.attempt_flee():
 		ui.log_message("Fugimos! Escapamos do combate.")
 		queue_free()
 		return
@@ -237,12 +231,20 @@ func _resolve_flee() -> void:
 	for enemy_id in state.get_alive_ids(state.enemy_ids):
 		if state.combat_over:
 			break
-		var command := _build_enemy_attack_command(enemy_id)
-		if command == null:
+		var target_id := CombatRules.pick_random_alive_target_id(state, state.player_ids)
+		if target_id == -1:
+			continue
+		var enemy := state.get_combatant(enemy_id)
+		var attack_index := CombatRules.pick_random_attack_index(database, enemy.species_id)
+		if attack_index == -1:
 			continue
 
 		ui.set_turn_text("Turno: %s" % _name_of(enemy_id))
-		_execute_command(command)
+		var command := ActionCommand.new(enemy_id, "attack", target_id, attack_index)
+		var event := CombatRules.resolve_action(state, command, database)
+		_log_event(event)
+		_refresh_hp_display()
+		CombatRules.check_combat_end(state)
 		if state.combat_over:
 			break
 		await get_tree().create_timer(0.5).timeout
@@ -250,7 +252,7 @@ func _resolve_flee() -> void:
 	if state.combat_over:
 		_show_combat_end()
 	else:
-		_advance_phase(BattlePhaseMachine.END_OF_ROUND)
+		_advance_phase(BattlePhaseRules.END_OF_ROUND)
 		_start_action_selection()
 
 
@@ -258,32 +260,18 @@ func _show_combat_end() -> void:
 	ui.show_combat_end(state.player_won)
 
 
-func _log_event(event: CombatEvent) -> void:
-	match event.kind:
-		CombatEvent.Kind.ATTACK_MISS:
+func _log_event(event: Dictionary) -> void:
+	match event.get("kind"):
+		"attack_miss":
 			ui.log_message("%s usa %s em %s... e erra!" % [_name_of(event.actor_id), event.attack_name, _name_of(event.target_id)])
-		CombatEvent.Kind.ATTACK_HIT:
+		"attack_hit":
 			var crit_text := " CRITICO!" if event.critical else ""
 			ui.log_message("%s usa %s em %s! %d de dano.%s" % [_name_of(event.actor_id), event.attack_name, _name_of(event.target_id), event.damage, crit_text])
-			if event.effectiveness > 1.0:
-				ui.log_message("E super efetivo!")
-			elif event.effectiveness < 1.0:
-				ui.log_message("Nao e muito efetivo...")
-			if event.temperature_delta != 0:
-				ui.log_message("A arena esquenta +%d K (agora %.1f K)." % [event.temperature_delta, state.temperature])
-		CombatEvent.Kind.ITEM_USED:
+		"item_used":
 			ui.log_message("%s usa item em %s! Recupera %d HP." % [_name_of(event.actor_id), _name_of(event.target_id), event.amount])
-		CombatEvent.Kind.CAPTURE_SUCCESS:
+		"capture_success":
 			ui.log_message("%s captura %s! Retirado do combate." % [_name_of(event.actor_id), _name_of(event.target_id)])
-		CombatEvent.Kind.CAPTURE_FAIL:
+		"capture_fail":
 			ui.log_message("Tentativa de capturar %s falhou!" % _name_of(event.target_id))
-		CombatEvent.Kind.FLEE_SUCCESS:
-			ui.log_message("Fuga bem sucedida!")
-		CombatEvent.Kind.FLEE_FAIL:
-			ui.log_message("Fuga falhou!")
-		CombatEvent.Kind.INVALID_TARGET:
-			ui.log_message("Alvo invalido (%s)." % event.reason)
-		CombatEvent.Kind.ALREADY_DEAD:
-			ui.log_message("Alvo ja fora de combate (%s)." % event.reason)
-		CombatEvent.Kind.INVALID_ACTION:
-			ui.log_message("Acao invalida (%s)." % event.reason)
+		"cancelled":
+			ui.log_message("Acao cancelada (%s)." % event.get("reason", "motivo desconhecido"))
