@@ -71,7 +71,7 @@ func test_attack_resolves_to_hit_or_miss_with_complete_data() -> void:
 
 	var result := CombatRules.resolve_action(state, command, database)
 
-	var is_hit_or_miss := result.outcome == CombatResult.Outcome.ATTACK_HIT \
+	var is_hit_or_miss :bool= result.outcome == CombatResult.Outcome.ATTACK_HIT \
 		or result.outcome == CombatResult.Outcome.ATTACK_MISS
 	assert_bool(is_hit_or_miss).is_true()
 	assert_int(result.actor_id).is_equal(_player_id())

@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites id="2026-09-09" name="report_1" tests="1" failures="0" skipped="0" flaky="0" time="0.000">
-	<testsuite id="0" name="test_alchemon_growth" package="test/unit" timestamp="2026-09-09T11:46:47" hostname="localhost" tests="1" failures="0" errors="0" skipped="0" flaky="0" time="0.022">
-		<testcase name="test_damage_formula_applies_effectiveness_multiplier" classname="test_alchemon_growth" time="0.008">
+<testsuites id="2026-09-11" name="report_1" tests="7" failures="0" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_alchemon_type" package="test/unit" timestamp="2026-09-11T12:28:13" hostname="localhost" tests="7" failures="0" errors="0" skipped="0" flaky="0" time="0.061">
+		<testcase name="test_same_type_is_neutral" classname="test_alchemon_type" time="0.006">
+		</testcase>
+		<testcase name="test_metal_is_super_effective_against_metaloide" classname="test_alchemon_type" time="0.008">
+		</testcase>
+		<testcase name="test_metaloide_is_super_effective_against_ametal" classname="test_alchemon_type" time="0.005">
+		</testcase>
+		<testcase name="test_ametal_is_super_effective_against_metal" classname="test_alchemon_type" time="0.005">
+		</testcase>
+		<testcase name="test_metaloide_resists_metal" classname="test_alchemon_type" time="0.005">
+		</testcase>
+		<testcase name="test_ametal_resists_metaloide" classname="test_alchemon_type" time="0.005">
+		</testcase>
+		<testcase name="test_metal_resists_ametal" classname="test_alchemon_type" time="0.005">
 		</testcase>
 	</testsuite>
 </testsuites>
