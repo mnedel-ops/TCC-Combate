@@ -8,6 +8,11 @@ extends RefCounted
 ## slot -> combatant_id (or -1 if empty/freed)
 var slot_occupancy: Array[int] = [-1, -1, -1, -1]
 
-
-func _init() -> void:
-	slot_occupancy = [-1, -1, -1, -1]
+func assign_combatant(combatant_id: int, slot: int) -> void:
+	if slot < 0 or slot >= BattlefieldSlot.SLOT_COUNT:
+		push_error("Invalid slot: %d" % slot)
+		return
+	if slot_occupancy[slot] != -1:
+		push_error("Slot %d already occupied by %d" % [slot, slot_occupancy[slot]])
+		return
+	slot_occupancy[slot] = combatant_id
