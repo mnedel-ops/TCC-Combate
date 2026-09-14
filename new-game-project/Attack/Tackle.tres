@@ -7,4 +7,5 @@ script = ExtResource("1_6rwt1")
 indexAttack = 1
 attack_name = "Tackle"
 damage = 20
+element_type = 2
 metadata/_custom_type_script = "uid://chjyxlmn2nm8c"

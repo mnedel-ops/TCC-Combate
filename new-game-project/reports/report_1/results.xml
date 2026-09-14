@@ -1,99 +1,99 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites id="2026-09-13" name="report_1" tests="44" failures="0" skipped="0" flaky="0" time="0.000">
-	<testsuite id="0" name="test_battlefield_rules" package="test/unit" timestamp="2026-09-14T01:57:51" hostname="localhost" tests="14" failures="0" errors="0" skipped="0" flaky="0" time="1.067">
+<testsuites id="2026-09-14" name="report_1" tests="44" failures="0" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_battlefield_rules" package="test/unit" timestamp="2026-09-14T12:16:49" hostname="localhost" tests="14" failures="0" errors="0" skipped="0" flaky="0" time="0.144">
 		<testcase name="test_assign_combatant_places_id_in_slot" classname="test_battlefield_rules" time="0.006">
 		</testcase>
 		<testcase name="test_assign_combatant_rejects_already_occupied_slot" classname="test_battlefield_rules" time="0.006">
 		</testcase>
-		<testcase name="test_get_occupant_returns_negative_one_when_empty" classname="test_battlefield_rules" time="0.005">
+		<testcase name="test_get_occupant_returns_negative_one_when_empty" classname="test_battlefield_rules" time="0.006">
 		</testcase>
-		<testcase name="test_get_combatant_slot_finds_correct_slot" classname="test_battlefield_rules" time="0.005">
+		<testcase name="test_get_combatant_slot_finds_correct_slot" classname="test_battlefield_rules" time="0.007">
 		</testcase>
 		<testcase name="test_get_combatant_slot_returns_negative_one_when_not_found" classname="test_battlefield_rules" time="0.006">
 		</testcase>
-		<testcase name="test_free_slot_clears_occupant" classname="test_battlefield_rules" time="0.005">
+		<testcase name="test_free_slot_clears_occupant" classname="test_battlefield_rules" time="0.006">
 		</testcase>
-		<testcase name="test_free_slot_allows_reassignment" classname="test_battlefield_rules" time="0.006">
+		<testcase name="test_free_slot_allows_reassignment" classname="test_battlefield_rules" time="0.007">
 		</testcase>
-		<testcase name="test_get_occupied_slots_lists_all_filled" classname="test_battlefield_rules" time="0.007">
+		<testcase name="test_get_occupied_slots_lists_all_filled" classname="test_battlefield_rules" time="0.006">
 		</testcase>
 		<testcase name="test_get_occupied_side_slots_filters_by_side" classname="test_battlefield_rules" time="0.006">
 		</testcase>
-		<testcase name="test_get_side_combatants_returns_ids_on_that_side" classname="test_battlefield_rules" time="0.005">
+		<testcase name="test_get_side_combatants_returns_ids_on_that_side" classname="test_battlefield_rules" time="0.006">
 		</testcase>
-		<testcase name="test_get_opposing_combatants_returns_other_side" classname="test_battlefield_rules" time="0.005">
+		<testcase name="test_get_opposing_combatants_returns_other_side" classname="test_battlefield_rules" time="0.007">
 		</testcase>
 		<testcase name="test_is_occupied_true_after_assign" classname="test_battlefield_rules" time="0.006">
 		</testcase>
-		<testcase name="test_is_occupied_false_when_empty" classname="test_battlefield_rules" time="0.005">
+		<testcase name="test_is_occupied_false_when_empty" classname="test_battlefield_rules" time="0.019">
 		</testcase>
-		<testcase name="test_is_available_is_inverse_of_is_occupied" classname="test_battlefield_rules" time="0.005">
+		<testcase name="test_is_available_is_inverse_of_is_occupied" classname="test_battlefield_rules" time="0.008">
 		</testcase>
 	</testsuite>
-	<testsuite id="1" name="test_combat_rules" package="test/unit" timestamp="2026-09-14T01:57:53" hostname="localhost" tests="14" failures="0" errors="0" skipped="0" flaky="0" time="1.093">
-		<testcase name="test_has_all_commands_false_when_missing" classname="test_combat_rules" time="0.015">
+	<testsuite id="1" name="test_combat_rules" package="test/unit" timestamp="2026-09-14T12:16:49" hostname="localhost" tests="14" failures="0" errors="0" skipped="0" flaky="0" time="0.141">
+		<testcase name="test_has_all_commands_false_when_missing" classname="test_combat_rules" time="0.007">
 		</testcase>
-		<testcase name="test_has_all_commands_true_when_all_present" classname="test_combat_rules" time="0.009">
+		<testcase name="test_has_all_commands_true_when_all_present" classname="test_combat_rules" time="0.007">
 		</testcase>
-		<testcase name="test_has_all_commands_ignores_dead_actors" classname="test_combat_rules" time="0.011">
+		<testcase name="test_has_all_commands_ignores_dead_actors" classname="test_combat_rules" time="0.007">
 		</testcase>
 		<testcase name="test_required_actor_ids_only_alive" classname="test_combat_rules" time="0.007">
 		</testcase>
-		<testcase name="test_compute_damage_no_crit" classname="test_combat_rules" time="0.009">
+		<testcase name="test_compute_damage_no_crit" classname="test_combat_rules" time="0.006">
 		</testcase>
-		<testcase name="test_compute_damage_crit_applies_multiplier" classname="test_combat_rules" time="0.006">
+		<testcase name="test_compute_damage_crit_applies_multiplier" classname="test_combat_rules" time="0.007">
 		</testcase>
-		<testcase name="test_attack_retargets_to_other_enemy_when_target_already_dead" classname="test_combat_rules" time="0.008">
+		<testcase name="test_attack_retargets_to_other_enemy_when_target_already_dead" classname="test_combat_rules" time="0.006">
 		</testcase>
 		<testcase name="test_item_retargets_to_other_ally_when_target_already_dead" classname="test_combat_rules" time="0.007">
 		</testcase>
-		<testcase name="test_retarget_noop_when_target_still_alive" classname="test_combat_rules" time="0.010">
+		<testcase name="test_retarget_noop_when_target_still_alive" classname="test_combat_rules" time="0.007">
 		</testcase>
-		<testcase name="test_retarget_gives_up_when_whole_side_dead" classname="test_combat_rules" time="0.010">
+		<testcase name="test_retarget_gives_up_when_whole_side_dead" classname="test_combat_rules" time="0.007">
 		</testcase>
-		<testcase name="test_resolve_attack_deducts_energy_cost_when_affordable" classname="test_combat_rules" time="0.009">
+		<testcase name="test_resolve_attack_deducts_energy_cost_when_affordable" classname="test_combat_rules" time="0.006">
 		</testcase>
 		<testcase name="test_resolve_attack_forced_slap_when_zero_energy" classname="test_combat_rules" time="0.008">
 		</testcase>
-		<testcase name="test_slap_costs_nothing_and_stays_at_zero" classname="test_combat_rules" time="0.008">
+		<testcase name="test_slap_costs_nothing_and_stays_at_zero" classname="test_combat_rules" time="0.007">
 		</testcase>
 		<testcase name="test_pick_random_attack_index_within_range" classname="test_combat_rules" time="0.007">
 		</testcase>
 	</testsuite>
-	<testsuite id="2" name="test_battle_phase_rules" package="test/unit" timestamp="2026-09-14T01:57:55" hostname="localhost" tests="9" failures="0" errors="0" skipped="0" flaky="0" time="1.096">
-		<testcase name="test_constants_match_battle_phase_machine" classname="test_battle_phase_rules" time="0.008">
+	<testsuite id="2" name="test_battle_phase_rules" package="test/unit" timestamp="2026-09-14T12:16:49" hostname="localhost" tests="9" failures="0" errors="0" skipped="0" flaky="0" time="0.097">
+		<testcase name="test_constants_match_battle_phase_machine" classname="test_battle_phase_rules" time="0.007">
 		</testcase>
-		<testcase name="test_is_terminal_phase_true_for_victory_and_defeat" classname="test_battle_phase_rules" time="0.008">
+		<testcase name="test_is_terminal_phase_true_for_victory_and_defeat" classname="test_battle_phase_rules" time="0.006">
 		</testcase>
-		<testcase name="test_is_terminal_phase_false_for_non_terminal_phases" classname="test_battle_phase_rules" time="0.010">
+		<testcase name="test_is_terminal_phase_false_for_non_terminal_phases" classname="test_battle_phase_rules" time="0.007">
 		</testcase>
-		<testcase name="test_encounter_start_only_advances_to_selecting_actions" classname="test_battle_phase_rules" time="0.012">
+		<testcase name="test_encounter_start_only_advances_to_selecting_actions" classname="test_battle_phase_rules" time="0.007">
 		</testcase>
-		<testcase name="test_selecting_actions_only_advances_to_resolving_actions" classname="test_battle_phase_rules" time="0.011">
+		<testcase name="test_selecting_actions_only_advances_to_resolving_actions" classname="test_battle_phase_rules" time="0.007">
 		</testcase>
-		<testcase name="test_resolving_actions_advances_to_end_of_round_or_combat_over" classname="test_battle_phase_rules" time="0.008">
+		<testcase name="test_resolving_actions_advances_to_end_of_round_or_combat_over" classname="test_battle_phase_rules" time="0.007">
 		</testcase>
-		<testcase name="test_end_of_round_advances_to_selecting_actions_or_combat_over" classname="test_battle_phase_rules" time="0.010">
+		<testcase name="test_end_of_round_advances_to_selecting_actions_or_combat_over" classname="test_battle_phase_rules" time="0.008">
 		</testcase>
-		<testcase name="test_combat_over_advances_to_victory_or_defeat" classname="test_battle_phase_rules" time="0.010">
+		<testcase name="test_combat_over_advances_to_victory_or_defeat" classname="test_battle_phase_rules" time="0.007">
 		</testcase>
-		<testcase name="test_terminal_phases_reject_every_transition" classname="test_battle_phase_rules" time="0.008">
+		<testcase name="test_terminal_phases_reject_every_transition" classname="test_battle_phase_rules" time="0.006">
 		</testcase>
 	</testsuite>
-	<testsuite id="3" name="test_alchemon_type" package="test/unit" timestamp="2026-09-14T01:57:56" hostname="localhost" tests="7" failures="0" errors="0" skipped="0" flaky="0" time="0.101">
-		<testcase name="test_same_type_is_neutral" classname="test_alchemon_type" time="0.009">
+	<testsuite id="3" name="test_alchemon_type" package="test/unit" timestamp="2026-09-14T12:16:49" hostname="localhost" tests="7" failures="0" errors="0" skipped="0" flaky="0" time="0.069">
+		<testcase name="test_same_type_is_neutral" classname="test_alchemon_type" time="0.006">
 		</testcase>
-		<testcase name="test_metal_is_super_effective_against_metaloide" classname="test_alchemon_type" time="0.010">
+		<testcase name="test_metal_is_super_effective_against_metaloide" classname="test_alchemon_type" time="0.007">
 		</testcase>
 		<testcase name="test_metaloide_is_super_effective_against_ametal" classname="test_alchemon_type" time="0.007">
 		</testcase>
-		<testcase name="test_ametal_is_super_effective_against_metal" classname="test_alchemon_type" time="0.009">
+		<testcase name="test_ametal_is_super_effective_against_metal" classname="test_alchemon_type" time="0.007">
 		</testcase>
-		<testcase name="test_metaloide_resists_metal" classname="test_alchemon_type" time="0.010">
+		<testcase name="test_metaloide_resists_metal" classname="test_alchemon_type" time="0.006">
 		</testcase>
-		<testcase name="test_ametal_resists_metaloide" classname="test_alchemon_type" time="0.009">
+		<testcase name="test_ametal_resists_metaloide" classname="test_alchemon_type" time="0.006">
 		</testcase>
-		<testcase name="test_metal_resists_ametal" classname="test_alchemon_type" time="0.010">
+		<testcase name="test_metal_resists_ametal" classname="test_alchemon_type" time="0.006">
 		</testcase>
 	</testsuite>
 </testsuites>

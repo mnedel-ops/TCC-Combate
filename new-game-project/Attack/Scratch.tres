@@ -6,4 +6,5 @@
 script = ExtResource("1_lk7tm")
 indexAttack = 2
 attack_name = "Scratch"
+element_type = 1
 metadata/_custom_type_script = "uid://chjyxlmn2nm8c"

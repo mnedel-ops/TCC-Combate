@@ -2,8 +2,9 @@ class_name BondRules
 extends RefCounted
 
 ## Laco entre 2 aliados em campo (GDD sec 9). Escopo atual: so decide
-## Mistura vs Composto pelo tipo dos elementos - sem contagem de eletrons,
-## sem PC, sem ruptura por temperatura ainda (ver epic notes).
+## Mistura vs Composto pelo tipo dos elementos (AlchemonType.Type - o
+## mesmo enum usado pra type effectiveness, sem sistema de tipo separado)
+## - sem contagem de eletrons, sem PC, sem ruptura por temperatura ainda.
 ##
 ## Regra (simplificada para esta fase):
 ##   metal + metal      -> MIXTURE
@@ -19,9 +20,9 @@ const MIXTURE_BONUS := 8            # flat, GDD sec 9.1, aplicado em HP e Energi
 const COMPOUND_TRANSFER_RATIO := 0.7  # GDD sec 9.2, % dos atributos do Cation que o Anion absorve
 
 
-static func determine_bond_kind(type_a: String, type_b: String) -> String:
-	var a_metal := ElementType.is_metal(type_a)
-	var b_metal := ElementType.is_metal(type_b)
+static func determine_bond_kind(type_a: AlchemonType.Type, type_b: AlchemonType.Type) -> String:
+	var a_metal := type_a == AlchemonType.Type.METAL
+	var b_metal := type_b == AlchemonType.Type.METAL
 	if a_metal and b_metal:
 		return MIXTURE
 	if a_metal != b_metal:
@@ -43,8 +44,8 @@ static func form_bond(state: CombatState, database: AlchemonDatabase, actor_id: 
 	if a.bond_kind != NONE or b.bond_kind != NONE:
 		return {"kind": "cancelled", "reason": "already_bonded"}
 
-	var type_a := database.get_by_id(a.species_id).element_type
-	var type_b := database.get_by_id(b.species_id).element_type
+	var type_a: AlchemonType.Type = database.get_by_id(a.species_id).element_type
+	var type_b: AlchemonType.Type = database.get_by_id(b.species_id).element_type
 	var kind := determine_bond_kind(type_a, type_b)
 
 	match kind:
@@ -52,7 +53,7 @@ static func form_bond(state: CombatState, database: AlchemonDatabase, actor_id: 
 			_apply_mixture(a, b)
 			return {"kind": "mixture_formed", "actor_id": a.id, "target_id": b.id}
 		COMPOUND:
-			var a_is_cation := ElementType.is_metal(type_a)
+			var a_is_cation := type_a == AlchemonType.Type.METAL
 			var cation := a if a_is_cation else b
 			var anion := b if a_is_cation else a
 			_apply_compound(anion, cation)
