@@ -80,7 +80,7 @@ func _start_action_selection() -> void:
 	state.pending_actions.clear()
 	_queue_enemy_commands()
 
-	_selection_order = state.get_alive_ids(state.player_ids)
+	_selection_order = state.get_active_ids(state.player_ids)
 	_current_player_index = 0
 	_prompt_action_for_current()
 
@@ -105,6 +105,7 @@ func _prompt_action_for_current() -> void:
 		{"text": "Ataque", "callback": func(): _show_attack_menu(actor_id)},
 		{"text": "Item", "callback": func(): _begin_target_selection(actor_id, "item", -1, func(): _prompt_action_for_current())},
 		{"text": "Capturar", "callback": func(): _begin_target_selection(actor_id, "capture", -1, func(): _prompt_action_for_current())},
+		{"text": "Laco", "callback": func(): _begin_target_selection(actor_id, "bond", -1, func(): _prompt_action_for_current())},
 		{"text": "Fugir", "callback": _on_flee_pressed},
 	]
 	ui.show_options(_with_back(options, func(): _prompt_action_for_current()))
@@ -130,12 +131,18 @@ func _show_attack_menu(actor_id: int) -> void:
 
 
 func _begin_target_selection(actor_id: int, kind: String, attack_index: int, back_callback: Callable) -> void:
+	var actor := state.get_combatant(actor_id)
 	var candidate_ids: Array[int] = []
 	match kind:
 		"attack", "capture":
-			candidate_ids = state.get_alive_ids(state.enemy_ids)
+			candidate_ids = state.get_active_ids(state.enemy_ids)
 		"item":
-			candidate_ids = state.get_alive_ids(state.player_ids)
+			candidate_ids = state.get_active_ids(state.player_ids)
+		"bond":
+			# Allies only, excluding self and anyone already bonded.
+			candidate_ids = state.get_active_ids(state.get_team_ids(actor.is_player)).filter(
+				func(id): return id != actor_id and state.get_combatant(id).bond_kind == BondRules.NONE
+			)
 
 	ui.set_turn_text("%s: escolha o alvo" % _name_of(actor_id))
 
@@ -156,7 +163,7 @@ func _confirm_action(actor_id: int, kind: String, target_id: int, attack_index: 
 
 
 func _queue_enemy_commands() -> void:
-	for enemy_id in state.get_alive_ids(state.enemy_ids):
+	for enemy_id in state.get_active_ids(state.enemy_ids):
 		var target_id := CombatRules.pick_random_alive_target_id(state, state.player_ids)
 		if target_id == -1:
 			continue
@@ -228,7 +235,7 @@ func _resolve_flee() -> void:
 
 	ui.log_message("Tentativa de fuga falhou!")
 
-	for enemy_id in state.get_alive_ids(state.enemy_ids):
+	for enemy_id in state.get_active_ids(state.enemy_ids):
 		if state.combat_over:
 			break
 		var target_id := CombatRules.pick_random_alive_target_id(state, state.player_ids)
@@ -266,12 +273,21 @@ func _log_event(event: Dictionary) -> void:
 			ui.log_message("%s usa %s em %s... e erra!" % [_name_of(event.actor_id), event.attack_name, _name_of(event.target_id)])
 		"attack_hit":
 			var crit_text := " CRITICO!" if event.critical else ""
-			ui.log_message("%s usa %s em %s! %d de dano.%s" % [_name_of(event.actor_id), event.attack_name, _name_of(event.target_id), event.damage, crit_text])
+			var eff_text := ""
+			if event.effectiveness > 1.0:
+				eff_text = " Super efetivo!"
+			elif event.effectiveness < 1.0:
+				eff_text = " Nao muito efetivo..."
+			ui.log_message("%s usa %s em %s! %d de dano.%s%s" % [_name_of(event.actor_id), event.attack_name, _name_of(event.target_id), event.damage, crit_text, eff_text])
 		"item_used":
 			ui.log_message("%s usa item em %s! Recupera %d HP." % [_name_of(event.actor_id), _name_of(event.target_id), event.amount])
 		"capture_success":
 			ui.log_message("%s captura %s! Retirado do combate." % [_name_of(event.actor_id), _name_of(event.target_id)])
 		"capture_fail":
 			ui.log_message("Tentativa de capturar %s falhou!" % _name_of(event.target_id))
+		"mixture_formed":
+			ui.log_message("%s e %s formam uma Mistura! +8 em HP e Energia para os dois." % [_name_of(event.actor_id), _name_of(event.target_id)])
+		"compound_formed":
+			ui.log_message("%s e %s formam um Composto! %s vira o Cation (invulneravel), %s absorve 70%% dos atributos como Anion." % [_name_of(event.actor_id), _name_of(event.target_id), _name_of(event.cation_id), _name_of(event.anion_id)])
 		"cancelled":
 			ui.log_message("Acao cancelada (%s)." % event.get("reason", "motivo desconhecido"))

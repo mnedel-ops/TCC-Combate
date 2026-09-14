@@ -1,14 +1,14 @@
-extends GutTest
+extends GdUnitTestSuite
 
-## Tests CombatRules pure logic: parallel command readiness, crit damage
-## math, and dead-target auto-retarget. No scene tree needed - CombatState
-## is plain data (Resource), matching the data-oriented design of the file.
+## CombatRules pure logic: parallel command readiness, crit damage math,
+## dead-target auto-retarget, valence-electron Slap fallback. No scene
+## tree needed - CombatState is plain data (Resource).
 
 var state: CombatState
 var database: AlchemonDatabase
 
 
-func before_each() -> void:
+func before_test() -> void:
 	state = CombatState.new()
 
 	var cheap_attack := AttackData.new()
@@ -48,7 +48,9 @@ func before_each() -> void:
 
 func test_has_all_commands_false_when_missing() -> void:
 	state.pending_actions.append(ActionCommand.new(0, "attack", 2, 0))
-	assert_false(CombatRules.has_all_commands(state), "1 of 4 alive actors queued, should not be ready")
+	assert_bool(CombatRules.has_all_commands(state)) \
+		.override_failure_message("1 of 4 alive actors queued, should not be ready") \
+		.is_false()
 
 
 func test_has_all_commands_true_when_all_present() -> void:
@@ -56,7 +58,9 @@ func test_has_all_commands_true_when_all_present() -> void:
 	state.pending_actions.append(ActionCommand.new(1, "attack", 2, 0))
 	state.pending_actions.append(ActionCommand.new(2, "attack", 0, 0))
 	state.pending_actions.append(ActionCommand.new(3, "attack", 0, 0))
-	assert_true(CombatRules.has_all_commands(state), "all 4 alive actors queued, should be ready")
+	assert_bool(CombatRules.has_all_commands(state)) \
+		.override_failure_message("all 4 alive actors queued, should be ready") \
+		.is_true()
 
 
 func test_has_all_commands_ignores_dead_actors() -> void:
@@ -64,24 +68,26 @@ func test_has_all_commands_ignores_dead_actors() -> void:
 	state.pending_actions.append(ActionCommand.new(0, "attack", 2, 0))
 	state.pending_actions.append(ActionCommand.new(2, "attack", 0, 0))
 	state.pending_actions.append(ActionCommand.new(3, "attack", 0, 0))
-	assert_true(CombatRules.has_all_commands(state), "dead player 1 should not be required")
+	assert_bool(CombatRules.has_all_commands(state)) \
+		.override_failure_message("dead player 1 should not be required") \
+		.is_true()
 
 
 func test_required_actor_ids_only_alive() -> void:
 	state.get_combatant(3).alive = false
 	var required := CombatRules.get_required_actor_ids(state)
-	assert_eq(required.size(), 3)
-	assert_false(3 in required)
+	assert_int(required.size()).is_equal(3)
+	assert_bool(3 in required).is_false()
 
 
 ## --- Crit damage (pure, no RNG) ---
 
 func test_compute_damage_no_crit() -> void:
-	assert_eq(CombatRules.compute_damage(10, false), 10)
+	assert_int(CombatRules.compute_damage(10, false)).is_equal(10)
 
 
 func test_compute_damage_crit_applies_multiplier() -> void:
-	assert_eq(CombatRules.compute_damage(10, true), 15)
+	assert_int(CombatRules.compute_damage(10, true)).is_equal(15)
 
 
 ## --- Dead target auto-retarget ---
@@ -93,7 +99,9 @@ func test_attack_retargets_to_other_enemy_when_target_already_dead() -> void:
 	var command := ActionCommand.new(0, "attack", 2, 0)
 	CombatRules._retarget_if_dead(state, command)
 
-	assert_eq(command.target_id, 3, "should swap to the remaining alive enemy")
+	assert_int(command.target_id) \
+		.override_failure_message("should swap to the remaining alive enemy") \
+		.is_equal(3)
 
 
 func test_item_retargets_to_other_ally_when_target_already_dead() -> void:
@@ -103,13 +111,17 @@ func test_item_retargets_to_other_ally_when_target_already_dead() -> void:
 	var command := ActionCommand.new(0, "item", 1, -1)
 	CombatRules._retarget_if_dead(state, command)
 
-	assert_eq(command.target_id, 0, "should swap to the remaining alive ally")
+	assert_int(command.target_id) \
+		.override_failure_message("should swap to the remaining alive ally") \
+		.is_equal(0)
 
 
 func test_retarget_noop_when_target_still_alive() -> void:
 	var command := ActionCommand.new(0, "attack", 2, 0)
 	CombatRules._retarget_if_dead(state, command)
-	assert_eq(command.target_id, 2, "target already alive, no retarget needed")
+	assert_int(command.target_id) \
+		.override_failure_message("target already alive, no retarget needed") \
+		.is_equal(2)
 
 
 func test_retarget_gives_up_when_whole_side_dead() -> void:
@@ -119,7 +131,9 @@ func test_retarget_gives_up_when_whole_side_dead() -> void:
 	var command := ActionCommand.new(0, "attack", 2, 0)
 	CombatRules._retarget_if_dead(state, command)
 
-	assert_eq(command.target_id, 2, "no alive replacement exists, target_id left as-is for cancel path")
+	assert_int(command.target_id) \
+		.override_failure_message("no alive replacement exists, target_id left as-is for cancel path") \
+		.is_equal(2)
 
 
 ## --- Valence electron / energy, Slap fallback ---
@@ -127,30 +141,44 @@ func test_retarget_gives_up_when_whole_side_dead() -> void:
 func test_resolve_attack_deducts_energy_cost_when_affordable() -> void:
 	var command := ActionCommand.new(0, "attack", 2, 0)   # p1 uses Cheap (cost 2) on e1
 	CombatRules.resolve_action(state, command, database)
-	assert_eq(state.get_combatant(0).valence_electrons, 8, "10 - 2 cost = 8 left")
+	assert_int(state.get_combatant(0).valence_electrons) \
+		.override_failure_message("10 - 2 cost = 8 left") \
+		.is_equal(8)
 
 
 func test_resolve_attack_forced_slap_when_zero_energy() -> void:
 	state.get_combatant(0).valence_electrons = 0
 	var command := ActionCommand.new(0, "attack", 2, 1)   # p1 targets e1, picks Pricey (dmg 999), but has 0 electrons
 
-	var event := CombatRules.resolve_action(state, command, database)
+	var event: Dictionary = CombatRules.resolve_action(state, command, database)
 
-	assert_true(event.kind == "attack_hit" or event.kind == "attack_miss", "still resolves as an attack, never cancelled")
-	assert_eq(event.attack_name, CombatRules.SLAP_NAME, "forced to Slap regardless of chosen attack")
+	var resolved_as_attack: bool = event.kind == "attack_hit" or event.kind == "attack_miss"
+	assert_bool(resolved_as_attack) \
+		.override_failure_message("still resolves as an attack, never cancelled") \
+		.is_true()
+	assert_str(event.attack_name) \
+		.override_failure_message("forced to Slap regardless of chosen attack") \
+		.is_equal(CombatRules.SLAP_NAME)
 	if event.kind == "attack_hit":
-		assert_true(event.damage == 10 or event.damage == 15, "Slap base 10, or 15 on crit")
+		var plausible_damage: bool = event.damage == 10 or event.damage == 15
+		assert_bool(plausible_damage) \
+			.override_failure_message("Slap base 10, or 15 on crit") \
+			.is_true()
 
 
 func test_slap_costs_nothing_and_stays_at_zero() -> void:
 	state.get_combatant(0).valence_electrons = 0
 	var command := ActionCommand.new(0, "attack", 2, 1)
 	CombatRules.resolve_action(state, command, database)
-	assert_eq(state.get_combatant(0).valence_electrons, 0, "Slap is free, stays clamped at 0")
+	assert_int(state.get_combatant(0).valence_electrons) \
+		.override_failure_message("Slap is free, stays clamped at 0") \
+		.is_equal(0)
 
 
 func test_pick_random_attack_index_within_range() -> void:
 	for i in 20:
 		var index := CombatRules.pick_random_attack_index(database, 0)
-		assert_true(index == 0 or index == 1, "should pick a valid attack index regardless of energy")
-
+		var in_range: bool = index == 0 or index == 1
+		assert_bool(in_range) \
+			.override_failure_message("should pick a valid attack index regardless of energy") \
+			.is_true()

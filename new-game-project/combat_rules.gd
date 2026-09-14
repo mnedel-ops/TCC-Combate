@@ -189,6 +189,13 @@ static func _mark_battle_outcome(state: CombatState, player_won: bool) -> void:
 	if BattlePhaseRules.is_valid_transition(state.phase, final_phase):
 		state.phase = final_phase
 
+	# Keep the BattlePhaseMachine instance (state.battle_phase) in lockstep
+	# with state.phase - victory/defeat must always be reachable regardless
+	# of what "normal" phase combat was in when the kill happened, so this
+	# forces it directly instead of going through transition() validation.
+	if state.battle_phase != null:
+		state.battle_phase.force_phase(state.phase)
+
 
 static func pick_random_alive_target_id(state: CombatState, team_ids: Array[int]) -> int:
 	var alive_ids := state.get_alive_ids(team_ids)

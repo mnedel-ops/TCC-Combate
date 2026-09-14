@@ -1,19 +1,49 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites id="2026-09-11" name="report_1" tests="7" failures="0" skipped="0" flaky="0" time="0.000">
-	<testsuite id="0" name="test_alchemon_type" package="test/unit" timestamp="2026-09-11T12:28:13" hostname="localhost" tests="7" failures="0" errors="0" skipped="0" flaky="0" time="0.061">
-		<testcase name="test_same_type_is_neutral" classname="test_alchemon_type" time="0.006">
+<testsuites id="2026-09-13" name="report_1" tests="21" failures="0" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_combat_rules" package="test/unit" timestamp="2026-09-14T00:32:20" hostname="localhost" tests="14" failures="0" errors="0" skipped="0" flaky="0" time="0.146">
+		<testcase name="test_has_all_commands_false_when_missing" classname="test_combat_rules" time="0.007">
 		</testcase>
-		<testcase name="test_metal_is_super_effective_against_metaloide" classname="test_alchemon_type" time="0.008">
+		<testcase name="test_has_all_commands_true_when_all_present" classname="test_combat_rules" time="0.007">
 		</testcase>
-		<testcase name="test_metaloide_is_super_effective_against_ametal" classname="test_alchemon_type" time="0.005">
+		<testcase name="test_has_all_commands_ignores_dead_actors" classname="test_combat_rules" time="0.007">
 		</testcase>
-		<testcase name="test_ametal_is_super_effective_against_metal" classname="test_alchemon_type" time="0.005">
+		<testcase name="test_required_actor_ids_only_alive" classname="test_combat_rules" time="0.007">
 		</testcase>
-		<testcase name="test_metaloide_resists_metal" classname="test_alchemon_type" time="0.005">
+		<testcase name="test_compute_damage_no_crit" classname="test_combat_rules" time="0.007">
 		</testcase>
-		<testcase name="test_ametal_resists_metaloide" classname="test_alchemon_type" time="0.005">
+		<testcase name="test_compute_damage_crit_applies_multiplier" classname="test_combat_rules" time="0.007">
 		</testcase>
-		<testcase name="test_metal_resists_ametal" classname="test_alchemon_type" time="0.005">
+		<testcase name="test_attack_retargets_to_other_enemy_when_target_already_dead" classname="test_combat_rules" time="0.006">
+		</testcase>
+		<testcase name="test_item_retargets_to_other_ally_when_target_already_dead" classname="test_combat_rules" time="0.006">
+		</testcase>
+		<testcase name="test_retarget_noop_when_target_still_alive" classname="test_combat_rules" time="0.007">
+		</testcase>
+		<testcase name="test_retarget_gives_up_when_whole_side_dead" classname="test_combat_rules" time="0.007">
+		</testcase>
+		<testcase name="test_resolve_attack_deducts_energy_cost_when_affordable" classname="test_combat_rules" time="0.007">
+		</testcase>
+		<testcase name="test_resolve_attack_forced_slap_when_zero_energy" classname="test_combat_rules" time="0.007">
+		</testcase>
+		<testcase name="test_slap_costs_nothing_and_stays_at_zero" classname="test_combat_rules" time="0.007">
+		</testcase>
+		<testcase name="test_pick_random_attack_index_within_range" classname="test_combat_rules" time="0.007">
+		</testcase>
+	</testsuite>
+	<testsuite id="1" name="test_alchemon_type" package="test/unit" timestamp="2026-09-14T00:32:20" hostname="localhost" tests="7" failures="0" errors="0" skipped="0" flaky="0" time="0.077">
+		<testcase name="test_same_type_is_neutral" classname="test_alchemon_type" time="0.007">
+		</testcase>
+		<testcase name="test_metal_is_super_effective_against_metaloide" classname="test_alchemon_type" time="0.007">
+		</testcase>
+		<testcase name="test_metaloide_is_super_effective_against_ametal" classname="test_alchemon_type" time="0.008">
+		</testcase>
+		<testcase name="test_ametal_is_super_effective_against_metal" classname="test_alchemon_type" time="0.006">
+		</testcase>
+		<testcase name="test_metaloide_resists_metal" classname="test_alchemon_type" time="0.007">
+		</testcase>
+		<testcase name="test_ametal_resists_metaloide" classname="test_alchemon_type" time="0.008">
+		</testcase>
+		<testcase name="test_metal_resists_ametal" classname="test_alchemon_type" time="0.006">
 		</testcase>
 	</testsuite>
 </testsuites>

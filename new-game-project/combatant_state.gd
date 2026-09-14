@@ -13,6 +13,9 @@ extends Resource
 @export var max_hp: int = 0
 @export var valence_electrons: int = 0
 @export var max_valence_electrons: int = 0
+@export var bond_kind: String = BondRules.NONE   # NONE | MIXTURE | COMPOUND - see BondRules
+@export var bond_partner_id: int = -1
+@export var is_bond_cation: bool = false         # only meaningful when bond_kind == COMPOUND
 @export var initiative: int = 0
 @export var is_player: bool = false
 @export var alive: bool = true
