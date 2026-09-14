@@ -34,12 +34,12 @@
 		<div class="report-container">
 			<h1>Testsuite Report</h1>
 			<div>
-				<span class="label">res://test/unit/test_combat_rules.gd</span>
+				<span class="label">res://test/unit/test_battle_phase_rules.gd</span>
 			</div>
 			<div class="summary">
 				<div class="summary-item">
 					<span class="label">Tests</span>
-					<span class="value">14</span>
+					<span class="value">9</span>
 				</div>
 				<div class="summary-item">
 					<span class="label">Skipped</span>
@@ -59,7 +59,7 @@
 				</div>
 				<div class="summary-item">
 					<span class="label">Duration</span>
-					<span class="value">1s 93ms</span>
+					<span class="value">1s 96ms</span>
 				</div>
 				<div class="success-rate">
 					<div class="check-icon status-passed">✓</div>
@@ -73,7 +73,7 @@
 		<div class="breadcrumb">
 			<a href="../index.html"><span>All</span></a>
 			<a href="../path/test.unit.html"><span>test/unit</span></a>
-			<a class="active" href="#"><span>test_combat_rules</span></a>
+			<a class="active" href="#"><span>test_battle_phase_rules</span></a>
 		</div>
 	</header>
 
@@ -94,11 +94,11 @@
 					<tbody>
 						
 								<tr class="testcase-group">
-									<td>test_has_all_commands_false_when_missing</td>
+									<td>test_constants_match_battle_phase_machine</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
-									<td>15ms</td>
+									<td>8ms</td>
 									<td class="report-column">
 										<pre>
 
@@ -108,11 +108,11 @@
 
 
 								<tr class="testcase-group">
-									<td>test_has_all_commands_true_when_all_present</td>
+									<td>test_is_terminal_phase_true_for_victory_and_defeat</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
-									<td>9ms</td>
+									<td>8ms</td>
 									<td class="report-column">
 										<pre>
 
@@ -122,7 +122,35 @@
 
 
 								<tr class="testcase-group">
-									<td>test_has_all_commands_ignores_dead_actors</td>
+									<td>test_is_terminal_phase_false_for_non_terminal_phases</td>
+									<td><span class="status status-passed">PASSED</span></td>
+									<td>0</td>
+									<td>0</td>
+									<td>10ms</td>
+									<td class="report-column">
+										<pre>
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_encounter_start_only_advances_to_selecting_actions</td>
+									<td><span class="status status-passed">PASSED</span></td>
+									<td>0</td>
+									<td>0</td>
+									<td>12ms</td>
+									<td class="report-column">
+										<pre>
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_selecting_actions_only_advances_to_resolving_actions</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
@@ -136,49 +164,7 @@
 
 
 								<tr class="testcase-group">
-									<td>test_required_actor_ids_only_alive</td>
-									<td><span class="status status-passed">PASSED</span></td>
-									<td>0</td>
-									<td>0</td>
-									<td>7ms</td>
-									<td class="report-column">
-										<pre>
-
-										</pre>
-									</td>
-								</tr>
-
-
-								<tr class="testcase-group">
-									<td>test_compute_damage_no_crit</td>
-									<td><span class="status status-passed">PASSED</span></td>
-									<td>0</td>
-									<td>0</td>
-									<td>9ms</td>
-									<td class="report-column">
-										<pre>
-
-										</pre>
-									</td>
-								</tr>
-
-
-								<tr class="testcase-group">
-									<td>test_compute_damage_crit_applies_multiplier</td>
-									<td><span class="status status-passed">PASSED</span></td>
-									<td>0</td>
-									<td>0</td>
-									<td>6ms</td>
-									<td class="report-column">
-										<pre>
-
-										</pre>
-									</td>
-								</tr>
-
-
-								<tr class="testcase-group">
-									<td>test_attack_retargets_to_other_enemy_when_target_already_dead</td>
+									<td>test_resolving_actions_advances_to_end_of_round_or_combat_over</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
@@ -192,21 +178,7 @@
 
 
 								<tr class="testcase-group">
-									<td>test_item_retargets_to_other_ally_when_target_already_dead</td>
-									<td><span class="status status-passed">PASSED</span></td>
-									<td>0</td>
-									<td>0</td>
-									<td>7ms</td>
-									<td class="report-column">
-										<pre>
-
-										</pre>
-									</td>
-								</tr>
-
-
-								<tr class="testcase-group">
-									<td>test_retarget_noop_when_target_still_alive</td>
+									<td>test_end_of_round_advances_to_selecting_actions_or_combat_over</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
@@ -220,7 +192,7 @@
 
 
 								<tr class="testcase-group">
-									<td>test_retarget_gives_up_when_whole_side_dead</td>
+									<td>test_combat_over_advances_to_victory_or_defeat</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
@@ -234,53 +206,11 @@
 
 
 								<tr class="testcase-group">
-									<td>test_resolve_attack_deducts_energy_cost_when_affordable</td>
-									<td><span class="status status-passed">PASSED</span></td>
-									<td>0</td>
-									<td>0</td>
-									<td>9ms</td>
-									<td class="report-column">
-										<pre>
-
-										</pre>
-									</td>
-								</tr>
-
-
-								<tr class="testcase-group">
-									<td>test_resolve_attack_forced_slap_when_zero_energy</td>
+									<td>test_terminal_phases_reject_every_transition</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
 									<td>8ms</td>
-									<td class="report-column">
-										<pre>
-
-										</pre>
-									</td>
-								</tr>
-
-
-								<tr class="testcase-group">
-									<td>test_slap_costs_nothing_and_stays_at_zero</td>
-									<td><span class="status status-passed">PASSED</span></td>
-									<td>0</td>
-									<td>0</td>
-									<td>8ms</td>
-									<td class="report-column">
-										<pre>
-
-										</pre>
-									</td>
-								</tr>
-
-
-								<tr class="testcase-group">
-									<td>test_pick_random_attack_index_within_range</td>
-									<td><span class="status status-passed">PASSED</span></td>
-									<td>0</td>
-									<td>0</td>
-									<td>7ms</td>
 									<td class="report-column">
 										<pre>
 

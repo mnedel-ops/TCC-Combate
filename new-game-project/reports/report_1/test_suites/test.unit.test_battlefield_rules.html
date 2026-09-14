@@ -34,7 +34,7 @@
 		<div class="report-container">
 			<h1>Testsuite Report</h1>
 			<div>
-				<span class="label">res://test/unit/test_combat_rules.gd</span>
+				<span class="label">res://test/unit/test_battlefield_rules.gd</span>
 			</div>
 			<div class="summary">
 				<div class="summary-item">
@@ -59,7 +59,7 @@
 				</div>
 				<div class="summary-item">
 					<span class="label">Duration</span>
-					<span class="value">1s 93ms</span>
+					<span class="value">1s 67ms</span>
 				</div>
 				<div class="success-rate">
 					<div class="check-icon status-passed">✓</div>
@@ -73,7 +73,7 @@
 		<div class="breadcrumb">
 			<a href="../index.html"><span>All</span></a>
 			<a href="../path/test.unit.html"><span>test/unit</span></a>
-			<a class="active" href="#"><span>test_combat_rules</span></a>
+			<a class="active" href="#"><span>test_battlefield_rules</span></a>
 		</div>
 	</header>
 
@@ -94,77 +94,7 @@
 					<tbody>
 						
 								<tr class="testcase-group">
-									<td>test_has_all_commands_false_when_missing</td>
-									<td><span class="status status-passed">PASSED</span></td>
-									<td>0</td>
-									<td>0</td>
-									<td>15ms</td>
-									<td class="report-column">
-										<pre>
-
-										</pre>
-									</td>
-								</tr>
-
-
-								<tr class="testcase-group">
-									<td>test_has_all_commands_true_when_all_present</td>
-									<td><span class="status status-passed">PASSED</span></td>
-									<td>0</td>
-									<td>0</td>
-									<td>9ms</td>
-									<td class="report-column">
-										<pre>
-
-										</pre>
-									</td>
-								</tr>
-
-
-								<tr class="testcase-group">
-									<td>test_has_all_commands_ignores_dead_actors</td>
-									<td><span class="status status-passed">PASSED</span></td>
-									<td>0</td>
-									<td>0</td>
-									<td>11ms</td>
-									<td class="report-column">
-										<pre>
-
-										</pre>
-									</td>
-								</tr>
-
-
-								<tr class="testcase-group">
-									<td>test_required_actor_ids_only_alive</td>
-									<td><span class="status status-passed">PASSED</span></td>
-									<td>0</td>
-									<td>0</td>
-									<td>7ms</td>
-									<td class="report-column">
-										<pre>
-
-										</pre>
-									</td>
-								</tr>
-
-
-								<tr class="testcase-group">
-									<td>test_compute_damage_no_crit</td>
-									<td><span class="status status-passed">PASSED</span></td>
-									<td>0</td>
-									<td>0</td>
-									<td>9ms</td>
-									<td class="report-column">
-										<pre>
-
-										</pre>
-									</td>
-								</tr>
-
-
-								<tr class="testcase-group">
-									<td>test_compute_damage_crit_applies_multiplier</td>
+									<td>test_assign_combatant_places_id_in_slot</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
@@ -178,11 +108,11 @@
 
 
 								<tr class="testcase-group">
-									<td>test_attack_retargets_to_other_enemy_when_target_already_dead</td>
+									<td>test_assign_combatant_rejects_already_occupied_slot</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
-									<td>8ms</td>
+									<td>6ms</td>
 									<td class="report-column">
 										<pre>
 
@@ -192,7 +122,77 @@
 
 
 								<tr class="testcase-group">
-									<td>test_item_retargets_to_other_ally_when_target_already_dead</td>
+									<td>test_get_occupant_returns_negative_one_when_empty</td>
+									<td><span class="status status-passed">PASSED</span></td>
+									<td>0</td>
+									<td>0</td>
+									<td>5ms</td>
+									<td class="report-column">
+										<pre>
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_get_combatant_slot_finds_correct_slot</td>
+									<td><span class="status status-passed">PASSED</span></td>
+									<td>0</td>
+									<td>0</td>
+									<td>5ms</td>
+									<td class="report-column">
+										<pre>
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_get_combatant_slot_returns_negative_one_when_not_found</td>
+									<td><span class="status status-passed">PASSED</span></td>
+									<td>0</td>
+									<td>0</td>
+									<td>6ms</td>
+									<td class="report-column">
+										<pre>
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_free_slot_clears_occupant</td>
+									<td><span class="status status-passed">PASSED</span></td>
+									<td>0</td>
+									<td>0</td>
+									<td>5ms</td>
+									<td class="report-column">
+										<pre>
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_free_slot_allows_reassignment</td>
+									<td><span class="status status-passed">PASSED</span></td>
+									<td>0</td>
+									<td>0</td>
+									<td>6ms</td>
+									<td class="report-column">
+										<pre>
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_get_occupied_slots_lists_all_filled</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
@@ -206,11 +206,11 @@
 
 
 								<tr class="testcase-group">
-									<td>test_retarget_noop_when_target_still_alive</td>
+									<td>test_get_occupied_side_slots_filters_by_side</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
-									<td>10ms</td>
+									<td>6ms</td>
 									<td class="report-column">
 										<pre>
 
@@ -220,11 +220,11 @@
 
 
 								<tr class="testcase-group">
-									<td>test_retarget_gives_up_when_whole_side_dead</td>
+									<td>test_get_side_combatants_returns_ids_on_that_side</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
-									<td>10ms</td>
+									<td>5ms</td>
 									<td class="report-column">
 										<pre>
 
@@ -234,11 +234,11 @@
 
 
 								<tr class="testcase-group">
-									<td>test_resolve_attack_deducts_energy_cost_when_affordable</td>
+									<td>test_get_opposing_combatants_returns_other_side</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
-									<td>9ms</td>
+									<td>5ms</td>
 									<td class="report-column">
 										<pre>
 
@@ -248,11 +248,11 @@
 
 
 								<tr class="testcase-group">
-									<td>test_resolve_attack_forced_slap_when_zero_energy</td>
+									<td>test_is_occupied_true_after_assign</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
-									<td>8ms</td>
+									<td>6ms</td>
 									<td class="report-column">
 										<pre>
 
@@ -262,11 +262,11 @@
 
 
 								<tr class="testcase-group">
-									<td>test_slap_costs_nothing_and_stays_at_zero</td>
+									<td>test_is_occupied_false_when_empty</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
-									<td>8ms</td>
+									<td>5ms</td>
 									<td class="report-column">
 										<pre>
 
@@ -276,11 +276,11 @@
 
 
 								<tr class="testcase-group">
-									<td>test_pick_random_attack_index_within_range</td>
+									<td>test_is_available_is_inverse_of_is_occupied</td>
 									<td><span class="status status-passed">PASSED</span></td>
 									<td>0</td>
 									<td>0</td>
-									<td>7ms</td>
+									<td>5ms</td>
 									<td class="report-column">
 										<pre>
 

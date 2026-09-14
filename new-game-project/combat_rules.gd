@@ -46,10 +46,12 @@ static func has_all_commands(state: CombatState) -> bool:
 
 
 ## Pure damage calc. Separated from RNG so crit math is testable without seeding.
-static func compute_damage(base_damage: int, is_critical: bool) -> int:
+static func compute_damage(base_damage: int, is_critical: bool, effectiveness: float = AlchemonType.NEUTRAL) -> int:
+	var total := float(base_damage)
 	if is_critical:
-		return int(round(base_damage * CRIT_MULTIPLIER))
-	return base_damage
+		total *= CRIT_MULTIPLIER
+	total *= effectiveness
+	return int(round(total))
 
 
 ## If original target already dead (killed by earlier action same round),
@@ -111,8 +113,9 @@ static func _resolve_attack(state: CombatState, command: ActionCommand, database
 	var attack_name := attack.attack_name
 	var base_damage := attack.damage
 	var cost := attack.energy_cost
+	var is_slap := actor.valence_electrons <= 0
 
-	if actor.valence_electrons <= 0:
+	if is_slap:
 		attack_name = SLAP_NAME
 		base_damage = SLAP_DAMAGE
 		cost = SLAP_COST
@@ -123,7 +126,17 @@ static func _resolve_attack(state: CombatState, command: ActionCommand, database
 		return {"kind": "attack_miss", "actor_id": actor.id, "target_id": target.id, "attack_name": attack_name}
 
 	var is_critical := randi_range(1, CRIT_ROLL_MAX) == CRIT_ROLL_MAX
-	var damage := compute_damage(base_damage, is_critical)
+
+	# Slap is the desperation fallback, not tied to an element - skip the
+	# type lookup entirely and treat it as neutral. Real attacks use the
+	# GOLPE's own type (AttackData.element_type) against the target
+	# creature's type - no STAB, GDD sec 10.1/6.
+	var effectiveness := AlchemonType.NEUTRAL
+	if not is_slap:
+		var target_template := database.get_by_id(target.species_id)
+		effectiveness = AlchemonType.effectiveness(attack.element_type, target_template.element_type)
+
+	var damage := compute_damage(base_damage, is_critical, effectiveness)
 
 	target.hp = max(target.hp - damage, 0)
 	if target.hp == 0:
@@ -137,6 +150,7 @@ static func _resolve_attack(state: CombatState, command: ActionCommand, database
 		"target_id": target.id,
 		"damage": damage,
 		"critical": is_critical,
+		"effectiveness": effectiveness,
 		"attack_name": attack_name,
 	}
 

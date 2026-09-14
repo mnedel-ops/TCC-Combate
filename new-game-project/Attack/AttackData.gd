@@ -8,3 +8,4 @@ extends Resource
 @export var attack_name: String = "Ataque"
 @export var damage: int = 10
 @export var energy_cost: int = 2   # eletrons de valencia gastos ao usar - custo fixo por enquanto
+@export var element_type: AlchemonType.Type = AlchemonType.Type.METAL   # tipo do GOLPE (nao do usuario - sem STAB, GDD 10.1)
