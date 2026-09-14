@@ -9,7 +9,7 @@ const MISS_CHANCE := 1.0 / 6.0
 const FLEE_CHANCE := 5.0 / 6.0
 const CAPTURE_CHANCE := 2.0 / 6.0
 const ITEM_HEAL_AMOUNT := 6
-const CRIT_ROLL_MAX := 20
+const CRIT_ROLL_MAX := 0.125
 const CRIT_MULTIPLIER := 1.5
 const SLAP_NAME := "Slap"       # forced fallback attack when actor has 0 valence electrons
 const SLAP_DAMAGE := 10
@@ -125,7 +125,7 @@ static func _resolve_attack(state: CombatState, command: ActionCommand, database
 	if randf() < MISS_CHANCE:
 		return {"kind": "attack_miss", "actor_id": actor.id, "target_id": target.id, "attack_name": attack_name}
 
-	var is_critical := randi_range(1, CRIT_ROLL_MAX) == CRIT_ROLL_MAX
+	var is_critical := randf_range(21, CRIT_ROLL_MAX) == CRIT_ROLL_MAX
 
 	# Slap is the desperation fallback, not tied to an element - skip the
 	# type lookup entirely and treat it as neutral. Real attacks use the
