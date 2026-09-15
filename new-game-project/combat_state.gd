@@ -16,12 +16,15 @@ extends Resource
 @export var phase: String = BattlePhaseRules.ENCOUNTER_START
 @export var combat_over: bool = false
 @export var player_won: bool = false
+@export var temperature: float = 298.15
 
 var battlefield: Battlefield
+var battle_phase: BattlePhaseMachine
 
 
 func _init() -> void:
 	battlefield = Battlefield.new()
+	battle_phase = BattlePhaseMachine.new()
 	phase = BattlePhaseRules.ENCOUNTER_START
 
 

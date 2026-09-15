@@ -1,17 +1,16 @@
 class_name CombatRules
 extends RefCounted
 
-## Pure rules engine operating on CombatState + ActionCommand + AlchemonDatabase.
-## Stateless, deterministic (except for randomness). Events use IDs; UI resolves names
-## via AlchemonDatabase at display time, never here.
+## Resolver only computes an immutable CombatResult. CombatResultApplier is
+## the sole writer of CombatState.
 
 const MISS_CHANCE := 1.0 / 6.0
 const FLEE_CHANCE := 5.0 / 6.0
 const CAPTURE_CHANCE := 2.0 / 6.0
 const ITEM_HEAL_AMOUNT := 6
-const CRIT_ROLL_MAX := 0.125
+const CRIT_CHANCE := 0.125
 const CRIT_MULTIPLIER := 1.5
-const SLAP_NAME := "Slap"       # forced fallback attack when actor has 0 valence electrons
+const SLAP_NAME := "Slap"
 const SLAP_DAMAGE := 10
 const SLAP_COST := 0
 
@@ -19,16 +18,14 @@ const SLAP_COST := 0
 static func roll_initiative(state: CombatState) -> void:
 	var all_ids: Array[int] = state.player_ids + state.enemy_ids
 	for id in all_ids:
-		state.get_combatant(id).initiative = randi_range(1, 20)
-
+		var combatant := state.get_combatant(id)
+		combatant.initiative = AlchemonFormulas.compute_initiative(combatant.mechanical_speed, combatant.individual_value, combatant.level)
 	all_ids.sort_custom(func(a, b): return state.get_combatant(a).initiative > state.get_combatant(b).initiative)
 	state.turn_order_ids = all_ids
 
 
-## Data-oriented readiness check. Round only resolves when every alive
-## actor (both players AND enemy AI) has a queued command.
 static func get_required_actor_ids(state: CombatState) -> Array[int]:
-	return state.get_alive_ids(state.player_ids) + state.get_alive_ids(state.enemy_ids)
+	return state.get_active_ids(state.player_ids) + state.get_active_ids(state.enemy_ids)
 
 
 static func find_command_for(state: CombatState, actor_id: int) -> ActionCommand:
@@ -45,144 +42,93 @@ static func has_all_commands(state: CombatState) -> bool:
 	return true
 
 
-## Pure damage calc. Separated from RNG so crit math is testable without seeding.
-static func compute_damage(base_damage: int, is_critical: bool, effectiveness: float = AlchemonType.NEUTRAL) -> int:
-	var total := float(base_damage)
-	if is_critical:
-		total *= CRIT_MULTIPLIER
-	total *= effectiveness
-	return int(round(total))
+static func compute_damage(base_damage: int, is_critical: bool) -> int:
+	return int(round(float(base_damage) * (CRIT_MULTIPLIER if is_critical else 1.0)))
 
 
-## If original target already dead (killed by earlier action same round),
-## auto-swap to remaining alive creature on correct side. Attack/capture
-## retarget enemy side, item retargets own side.
-static func _retarget_if_dead(state: CombatState, command: ActionCommand) -> void:
+## Returns replacement id without changing submitted command data.
+static func _retarget_if_dead(state: CombatState, command: ActionCommand) -> int:
 	if command.target_id == -1:
-		return
+		return -1
 	var target := state.get_combatant(command.target_id)
 	if target != null and target.alive:
-		return
+		return command.target_id
 	var actor := state.get_combatant(command.actor_id)
 	if actor == null:
-		return
-	var pool_is_player := actor.is_player if command.kind == "item" else not actor.is_player
-	var replacement := pick_random_alive_target_id(state, state.get_team_ids(pool_is_player))
-	if replacement != -1:
-		command.target_id = replacement
+		return command.target_id
+	var same_side := command.kind == "item"
+	var pool := state.get_team_ids(actor.is_player if same_side else not actor.is_player)
+	var replacement := pick_random_alive_target_id(state, pool)
+	return replacement if replacement != -1 else command.target_id
 
 
-static func resolve_action(state: CombatState, command: ActionCommand, database: AlchemonDatabase) -> Dictionary:
+static func resolve_action(state: CombatState, command: ActionCommand, database: AlchemonDatabase) -> CombatResult:
 	var actor := state.get_combatant(command.actor_id)
 	if actor == null or not actor.alive:
-		return {"kind": "cancelled", "reason": "actor_dead"}
-
-	_retarget_if_dead(state, command)
-
+		return CombatResult.already_dead(command.actor_id, command.target_id, "actor_dead")
+	var target_id := _retarget_if_dead(state, command)
 	match command.kind:
 		"attack":
-			return _resolve_attack(state, command, database)
+			return _resolve_attack(state, command, database, target_id)
 		"item":
-			return _resolve_item(state, command)
+			return _resolve_item(state, command, target_id)
 		"capture":
-			return _resolve_capture(state, command)
+			return _resolve_capture(state, command, target_id)
 		_:
-			return {"kind": "unknown_command"}
+			return CombatResult.invalid_action(actor.id, target_id, "unknown_command")
 
 
-static func _resolve_attack(state: CombatState, command: ActionCommand, database: AlchemonDatabase) -> Dictionary:
+static func _resolve_attack(state: CombatState, command: ActionCommand, database: AlchemonDatabase, target_id: int) -> CombatResult:
 	var actor := state.get_combatant(command.actor_id)
-	var target := state.get_combatant(command.target_id)
+	var target := state.get_combatant(target_id)
 	if target == null or not target.alive:
-		return {"kind": "cancelled", "reason": "target_dead", "actor_id": actor.id}
-
-	# Validate target is on opposing side via battlefield
+		return CombatResult.already_dead(actor.id, target_id)
 	if target.id not in state.get_valid_targets(actor.id):
-		return {"kind": "cancelled", "reason": "invalid_target", "actor_id": actor.id}
-
+		return CombatResult.invalid_target(actor.id, target.id)
 	var template := database.get_by_id(actor.species_id)
-	var valid_index := command.attack_index >= 0 and command.attack_index < template.attacks.size()
-	if not valid_index:
-		return {"kind": "cancelled", "reason": "invalid_attack", "actor_id": actor.id}
-
+	if template == null or command.attack_index < 0 or command.attack_index >= template.attacks.size():
+		return CombatResult.invalid_action(actor.id, target.id, "invalid_attack")
 	var attack: AttackData = template.attacks[command.attack_index]
-
-	# Player still picks by name/index like normal - but with 0 valence
-	# electrons left, every attack executes as a free 10-dmg Slap instead.
-	# UI keeps showing the real attack names; only the resolved effect swaps.
-	var attack_name := attack.attack_name
-	var base_damage := attack.damage
-	var cost := attack.energy_cost
 	var is_slap := actor.valence_electrons <= 0
-
-	if is_slap:
-		attack_name = SLAP_NAME
-		base_damage = SLAP_DAMAGE
-		cost = SLAP_COST
-
-	actor.valence_electrons = max(actor.valence_electrons - cost, 0)
-
+	var attack_name := SLAP_NAME if is_slap else attack.attack_name
+	var power := SLAP_DAMAGE if is_slap else (attack.power if attack.power > 0 else attack.damage)
+	var cost := SLAP_COST if is_slap else attack.energy_cost
 	if randf() < MISS_CHANCE:
-		return {"kind": "attack_miss", "actor_id": actor.id, "target_id": target.id, "attack_name": attack_name}
-
-	var is_critical := randf_range(21, CRIT_ROLL_MAX) == CRIT_ROLL_MAX
-
-	# Slap is the desperation fallback, not tied to an element - skip the
-	# type lookup entirely and treat it as neutral. Real attacks use the
-	# GOLPE's own type (AttackData.element_type) against the target
-	# creature's type - no STAB, GDD sec 10.1/6.
+		return CombatResult.attack_miss(actor.id, target.id, attack_name, cost)
+	var critical := randf() < CRIT_CHANCE
 	var effectiveness := AlchemonType.NEUTRAL
 	if not is_slap:
 		var target_template := database.get_by_id(target.species_id)
+		if target_template == null:
+			return CombatResult.invalid_action(actor.id, target.id, "unknown_species")
 		effectiveness = AlchemonType.effectiveness(attack.element_type, target_template.element_type)
-
-	var damage := compute_damage(base_damage, is_critical, effectiveness)
-
-	target.hp = max(target.hp - damage, 0)
-	if target.hp == 0:
-		target.alive = false
-		# Free the slot when combatant dies
-		BattlefieldRules.free_slot(state.battlefield, target.slot)
-
-	return {
-		"kind": "attack_hit",
-		"actor_id": actor.id,
-		"target_id": target.id,
-		"damage": damage,
-		"critical": is_critical,
-		"effectiveness": effectiveness,
-		"attack_name": attack_name,
-	}
+	var base_damage := SLAP_DAMAGE if is_slap else AlchemonFormulas.compute_damage(actor.level, power, actor.attack, target.defense, effectiveness)
+	var temperature_delta := 0 if is_slap else AlchemonFormulas.compute_temperature_delta(actor.level, power, actor.attack)
+	return CombatResult.attack_hit(actor.id, target.id, attack_name, compute_damage(base_damage, critical), critical, temperature_delta, effectiveness, cost)
 
 
-static func _resolve_item(state: CombatState, command: ActionCommand) -> Dictionary:
+static func _resolve_item(state: CombatState, command: ActionCommand, target_id: int) -> CombatResult:
 	var actor := state.get_combatant(command.actor_id)
-	var target := state.get_combatant(command.target_id)
+	var target := state.get_combatant(target_id)
 	if target == null or not target.alive:
-		return {"kind": "cancelled", "reason": "target_dead", "actor_id": actor.id}
+		return CombatResult.already_dead(actor.id, target_id)
+	if target.is_player != actor.is_player:
+		return CombatResult.invalid_target(actor.id, target.id)
+	return CombatResult.item_used(actor.id, target.id, ITEM_HEAL_AMOUNT)
 
-	target.hp = min(target.hp + ITEM_HEAL_AMOUNT, target.max_hp)
-	return {"kind": "item_used", "actor_id": actor.id, "target_id": target.id, "amount": ITEM_HEAL_AMOUNT}
 
-
-static func _resolve_capture(state: CombatState, command: ActionCommand) -> Dictionary:
+static func _resolve_capture(state: CombatState, command: ActionCommand, target_id: int) -> CombatResult:
 	var actor := state.get_combatant(command.actor_id)
-	var target := state.get_combatant(command.target_id)
+	var target := state.get_combatant(target_id)
 	if target == null or not target.alive:
-		return {"kind": "cancelled", "reason": "target_dead", "actor_id": actor.id}
-
-	if randf() < CAPTURE_CHANCE:
-		target.alive = false
-		target.hp = 0
-		# Free the slot when combatant is captured
-		BattlefieldRules.free_slot(state.battlefield, target.slot)
-		return {"kind": "capture_success", "actor_id": actor.id, "target_id": target.id}
-
-	return {"kind": "capture_fail", "actor_id": actor.id, "target_id": target.id}
+		return CombatResult.already_dead(actor.id, target_id)
+	if target.is_player == actor.is_player:
+		return CombatResult.invalid_target(actor.id, target.id)
+	return CombatResult.capture_success(actor.id, target.id) if randf() < CAPTURE_CHANCE else CombatResult.capture_fail(actor.id, target.id)
 
 
-static func attempt_flee() -> bool:
-	return randf() < FLEE_CHANCE
+static func resolve_flee() -> CombatResult:
+	return CombatResult.flee_success() if randf() < FLEE_CHANCE else CombatResult.flee_fail()
 
 
 static func check_combat_end(state: CombatState) -> void:
@@ -195,34 +141,16 @@ static func check_combat_end(state: CombatState) -> void:
 static func _mark_battle_outcome(state: CombatState, player_won: bool) -> void:
 	state.combat_over = true
 	state.player_won = player_won
-
-	if BattlePhaseRules.is_valid_transition(state.phase, BattlePhaseRules.COMBAT_OVER):
-		state.phase = BattlePhaseRules.COMBAT_OVER
-
-	var final_phase := BattlePhaseRules.VICTORY if player_won else BattlePhaseRules.DEFEAT
-	if BattlePhaseRules.is_valid_transition(state.phase, final_phase):
-		state.phase = final_phase
-
-	# Keep the BattlePhaseMachine instance (state.battle_phase) in lockstep
-	# with state.phase - victory/defeat must always be reachable regardless
-	# of what "normal" phase combat was in when the kill happened, so this
-	# forces it directly instead of going through transition() validation.
-	if state.battle_phase != null:
-		state.battle_phase.force_phase(state.phase)
+	state.phase = BattlePhaseRules.COMBAT_OVER
+	state.phase = BattlePhaseRules.VICTORY if player_won else BattlePhaseRules.DEFEAT
+	state.battle_phase.force_phase(state.phase)
 
 
 static func pick_random_alive_target_id(state: CombatState, team_ids: Array[int]) -> int:
-	var alive_ids := state.get_alive_ids(team_ids)
-	if alive_ids.is_empty():
-		return -1
-	return alive_ids[randi() % alive_ids.size()]
+	var alive_ids := state.get_active_ids(team_ids)
+	return -1 if alive_ids.is_empty() else alive_ids[randi() % alive_ids.size()]
 
 
-## Only picks among any attack. Fallback to Slap (see _resolve_attack)
-## handles the 0-energy case, so the AI never needs to worry about
-## affordability when choosing what to try.
 static func pick_random_attack_index(database: AlchemonDatabase, species_id: int) -> int:
 	var template := database.get_by_id(species_id)
-	if template == null or template.attacks.is_empty():
-		return -1
-	return randi() % template.attacks.size()
+	return -1 if template == null or template.attacks.is_empty() else randi() % template.attacks.size()

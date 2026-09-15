@@ -37,6 +37,7 @@ var critical: bool
 var reason: String
 var temperature_delta: int  # ΔT (K) causado pelo golpe - so != 0 em ATTACK_HIT
 var effectiveness: float    # multiplicador de tipo (GDD 6) - so relevante em ATTACK_HIT; 1.0 (neutro) em todo o resto
+var energy_cost: int
 
 
 func _init(
@@ -49,7 +50,8 @@ func _init(
 	p_critical: bool = false,
 	p_reason: String = "",
 	p_temperature_delta: int = 0,
-	p_effectiveness: float = 1.0
+	p_effectiveness: float = 1.0,
+	p_energy_cost: int = 0
 ) -> void:
 	outcome = p_outcome
 	actor_id = p_actor_id
@@ -61,14 +63,15 @@ func _init(
 	reason = p_reason
 	temperature_delta = p_temperature_delta
 	effectiveness = p_effectiveness
+	energy_cost = p_energy_cost
 
 
-static func attack_hit(p_actor_id: int, p_target_id: int, p_attack_name: String, p_damage: int, p_critical: bool, p_temperature_delta: int = 0, p_effectiveness: float = 1.0) -> CombatResult:
-	return CombatResult.new(Outcome.ATTACK_HIT, p_actor_id, p_target_id, p_attack_name, p_damage, 0, p_critical, "", p_temperature_delta, p_effectiveness)
+static func attack_hit(p_actor_id: int, p_target_id: int, p_attack_name: String, p_damage: int, p_critical: bool, p_temperature_delta: int = 0, p_effectiveness: float = 1.0, p_energy_cost: int = 0) -> CombatResult:
+	return CombatResult.new(Outcome.ATTACK_HIT, p_actor_id, p_target_id, p_attack_name, p_damage, 0, p_critical, "", p_temperature_delta, p_effectiveness, p_energy_cost)
 
 
-static func attack_miss(p_actor_id: int, p_target_id: int, p_attack_name: String) -> CombatResult:
-	return CombatResult.new(Outcome.ATTACK_MISS, p_actor_id, p_target_id, p_attack_name)
+static func attack_miss(p_actor_id: int, p_target_id: int, p_attack_name: String, p_energy_cost: int = 0) -> CombatResult:
+	return CombatResult.new(Outcome.ATTACK_MISS, p_actor_id, p_target_id, p_attack_name, 0, 0, false, "", 0, 1.0, p_energy_cost)
 
 
 static func item_used(p_actor_id: int, p_target_id: int, p_amount: int) -> CombatResult:

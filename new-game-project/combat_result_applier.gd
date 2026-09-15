@@ -18,12 +18,15 @@ extends RefCounted
 static func apply(state: CombatState, result: CombatResult, database: AlchemonDatabase) -> void:
 	match result.outcome:
 		CombatResult.Outcome.ATTACK_HIT:
+			_apply_energy_cost(state, result.actor_id, result.energy_cost)
 			state.temperature += result.temperature_delta
 			var died := _apply_damage(state, result.target_id, result.damage)
 			if died:
 				_grant_xp(state, database, result.actor_id, result.target_id)
 		CombatResult.Outcome.ITEM_USED:
 			_apply_heal(state, result.target_id, result.amount)
+		CombatResult.Outcome.ATTACK_MISS:
+			_apply_energy_cost(state, result.actor_id, result.energy_cost)
 		CombatResult.Outcome.CAPTURE_SUCCESS:
 			_apply_capture(state, result.target_id)
 			_grant_xp(state, database, result.actor_id, result.target_id)
@@ -31,6 +34,12 @@ static func apply(state: CombatState, result: CombatResult, database: AlchemonDa
 			pass # ATTACK_MISS, CAPTURE_FAIL, FLEE_*, INVALID_*, ALREADY_DEAD: nada pra mutar
 
 	CombatRules.check_combat_end(state)
+
+
+static func _apply_energy_cost(state: CombatState, actor_id: int, cost: int) -> void:
+	var actor := state.get_combatant(actor_id)
+	if actor != null:
+		actor.valence_electrons = maxi(actor.valence_electrons - cost, 0)
 
 
 ## Retorna true se este dano especifico matou o alvo (pra so conceder XP

@@ -23,6 +23,7 @@ static func build(database: AlchemonDatabase, player_species_ids: Array[int], en
 			break
 
 		var c := CombatantState.new(next_instance_id, species_id, template.max_hp, true, slot, template.max_valence_electrons)
+		_seed_stats(c, template)
 		state.combatants[c.id] = c
 		state.player_ids.append(c.id)
 		BattlefieldRules.assign_combatant(state.battlefield, c.id, slot)
@@ -41,6 +42,7 @@ static func build(database: AlchemonDatabase, player_species_ids: Array[int], en
 			break
 
 		var c := CombatantState.new(next_instance_id, species_id, template.max_hp, false, slot, template.max_valence_electrons)
+		_seed_stats(c, template)
 		state.combatants[c.id] = c
 		state.enemy_ids.append(c.id)
 		BattlefieldRules.assign_combatant(state.battlefield, c.id, slot)
@@ -48,3 +50,13 @@ static func build(database: AlchemonDatabase, player_species_ids: Array[int], en
 		enemy_slot_index += 1
 
 	return state
+
+
+static func _seed_stats(combatant: CombatantState, template: AlchemonSheet) -> void:
+	combatant.level = 1
+	combatant.experience = 0
+	combatant.individual_value = 1
+	combatant.attack = AlchemonFormulas.compute_attack(template.base_attack, combatant.individual_value, combatant.level)
+	combatant.defense = maxi(template.base_defense, 1)
+	combatant.mechanical_speed = maxi(template.base_mechanical_speed, 1)
+	combatant.action_energy = maxi(template.base_action_energy, 1)

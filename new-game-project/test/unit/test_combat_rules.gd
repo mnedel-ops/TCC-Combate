@@ -97,11 +97,12 @@ func test_attack_retargets_to_other_enemy_when_target_already_dead() -> void:
 	BattlefieldRules.free_slot(state.battlefield, BattlefieldSlot.ENEMY_SLOT_1)
 
 	var command := ActionCommand.new(0, "attack", 2, 0)
-	CombatRules._retarget_if_dead(state, command)
+	var target_id := CombatRules._retarget_if_dead(state, command)
 
 	assert_int(command.target_id) \
 		.override_failure_message("should swap to the remaining alive enemy") \
-		.is_equal(3)
+		.is_equal(2)
+	assert_int(target_id).is_equal(3)
 
 
 func test_item_retargets_to_other_ally_when_target_already_dead() -> void:
@@ -109,19 +110,21 @@ func test_item_retargets_to_other_ally_when_target_already_dead() -> void:
 	BattlefieldRules.free_slot(state.battlefield, BattlefieldSlot.PLAYER_SLOT_2)
 
 	var command := ActionCommand.new(0, "item", 1, -1)
-	CombatRules._retarget_if_dead(state, command)
+	var target_id := CombatRules._retarget_if_dead(state, command)
 
 	assert_int(command.target_id) \
 		.override_failure_message("should swap to the remaining alive ally") \
-		.is_equal(0)
+		.is_equal(1)
+	assert_int(target_id).is_equal(0)
 
 
 func test_retarget_noop_when_target_still_alive() -> void:
 	var command := ActionCommand.new(0, "attack", 2, 0)
-	CombatRules._retarget_if_dead(state, command)
+	var target_id := CombatRules._retarget_if_dead(state, command)
 	assert_int(command.target_id) \
 		.override_failure_message("target already alive, no retarget needed") \
 		.is_equal(2)
+	assert_int(target_id).is_equal(2)
 
 
 func test_retarget_gives_up_when_whole_side_dead() -> void:
@@ -129,18 +132,20 @@ func test_retarget_gives_up_when_whole_side_dead() -> void:
 	state.get_combatant(3).alive = false
 
 	var command := ActionCommand.new(0, "attack", 2, 0)
-	CombatRules._retarget_if_dead(state, command)
+	var target_id := CombatRules._retarget_if_dead(state, command)
 
 	assert_int(command.target_id) \
 		.override_failure_message("no alive replacement exists, target_id left as-is for cancel path") \
 		.is_equal(2)
+	assert_int(target_id).is_equal(2)
 
 
 ## --- Valence electron / energy, Slap fallback ---
 
 func test_resolve_attack_deducts_energy_cost_when_affordable() -> void:
 	var command := ActionCommand.new(0, "attack", 2, 0)   # p1 uses Cheap (cost 2) on e1
-	CombatRules.resolve_action(state, command, database)
+	var result := CombatRules.resolve_action(state, command, database)
+	CombatResultApplier.apply(state, result, database)
 	assert_int(state.get_combatant(0).valence_electrons) \
 		.override_failure_message("10 - 2 cost = 8 left") \
 		.is_equal(8)
@@ -150,16 +155,16 @@ func test_resolve_attack_forced_slap_when_zero_energy() -> void:
 	state.get_combatant(0).valence_electrons = 0
 	var command := ActionCommand.new(0, "attack", 2, 1)   # p1 targets e1, picks Pricey (dmg 999), but has 0 electrons
 
-	var event: Dictionary = CombatRules.resolve_action(state, command, database)
+	var event: CombatResult = CombatRules.resolve_action(state, command, database)
 
-	var resolved_as_attack: bool = event.kind == "attack_hit" or event.kind == "attack_miss"
+	var resolved_as_attack: bool = event.outcome == CombatResult.Outcome.ATTACK_HIT or event.outcome == CombatResult.Outcome.ATTACK_MISS
 	assert_bool(resolved_as_attack) \
 		.override_failure_message("still resolves as an attack, never cancelled") \
 		.is_true()
 	assert_str(event.attack_name) \
 		.override_failure_message("forced to Slap regardless of chosen attack") \
 		.is_equal(CombatRules.SLAP_NAME)
-	if event.kind == "attack_hit":
+	if event.outcome == CombatResult.Outcome.ATTACK_HIT:
 		var plausible_damage: bool = event.damage == 10 or event.damage == 15
 		assert_bool(plausible_damage) \
 			.override_failure_message("Slap base 10, or 15 on crit") \
@@ -169,7 +174,8 @@ func test_resolve_attack_forced_slap_when_zero_energy() -> void:
 func test_slap_costs_nothing_and_stays_at_zero() -> void:
 	state.get_combatant(0).valence_electrons = 0
 	var command := ActionCommand.new(0, "attack", 2, 1)
-	CombatRules.resolve_action(state, command, database)
+	var result := CombatRules.resolve_action(state, command, database)
+	CombatResultApplier.apply(state, result, database)
 	assert_int(state.get_combatant(0).valence_electrons) \
 		.override_failure_message("Slap is free, stays clamped at 0") \
 		.is_equal(0)
